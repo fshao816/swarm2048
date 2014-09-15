@@ -1,0 +1,65 @@
+{
+  "name": "swarm2048",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./src/deploy/start.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fshao816/swarm2048.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fshao816/swarm2048/issues"
+  },
+  "homepage": "https://github.com/fshao816/swarm2048",
+  "devDependencies": {
+    "bower": "~1.3.3",
+    "grunt": "~0.4.2",
+    "grunt-cli": "~0.1.11",
+    "grunt-coffeelint": "0.0.7",
+    "grunt-contrib-clean": "~0.5.0",
+    "grunt-contrib-coffee": "~0.7.0",
+    "grunt-contrib-concat": "~0.3.0",
+    "grunt-contrib-copy": "~0.4.1",
+    "grunt-contrib-jade": "~0.8.0",
+    "grunt-contrib-jshint": "~0.7.0",
+    "grunt-contrib-requirejs": "~0.4.1",
+    "grunt-contrib-stylus": "~0.9.0",
+    "grunt-contrib-watch": "~0.5.3",
+    "grunt-cucumberjs": "^0.3.0",
+    "grunt-karma": "~0.8.3",
+    "grunt-mocha-test": "~0.7.0",
+    "grunt-ngjade": "0.0.0",
+    "grunt-recurse": "~0.2.0",
+    "jade": "~0.35.0",
+    "karma": "~0.12.8",
+    "karma-chrome-launcher": "~0.1.0",
+    "karma-coffee-preprocessor": "~0.1.0",
+    "karma-coverage": "git://github.com/DavidSouther/karma-coverage#tmp/ibrik",
+    "karma-firefox-launcher": "~0.1.0",
+    "karma-junit-reporter": "~0.2.1",
+    "karma-mocha": "~0.1.0",
+    "karma-ng-html2js-preprocessor": "git://github.com/linagora/karma-ng-html2js-preprocessor.git#jade",
+    "karma-ng-scenario": "~0.1.0",
+    "karma-phantomjs-launcher": "~0.1.0",
+    "karma-script-launcher": "~0.1.0",
+    "karma-sinon-chai": "~0.1.1",
+    "karma-spec-reporter": "0.0.6",
+    "mocha": "~1.13.0",
+    "q": "~0.9.7",
+    "request": "~2.27.0",
+    "should": "~2.0.2",
+    "supervisor": "~0.5.7",
+    "winston": "^0.7.3"
+  },
+  "dependencies": {
+    "coffee-script": "~1.6.3",
+    "express": "~3.4.4",
+    "openport": "0.0.3"
+  }
+}

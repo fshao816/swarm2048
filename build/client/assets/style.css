@@ -1,0 +1,5 @@
+body{font:13px/1.231 Helvetica,arial,sans-serif}
+
+.tile{display:block;height:75px;width:75px;border:1px solid #000;line-height:75px;}
+.tile ._inner{display:block;position:relative;height:100%;width:100%;text-align:center;line-height:inherit;}
+.tile ._inner ._value{font-size:13px;vertical-align:middle;display:inline-block;line-height:normal}
