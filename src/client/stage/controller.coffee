@@ -11,6 +11,13 @@ class SwStageController
             [16, 17, 18, 19, 20]
             [21, 22, 23, 24, 25]
         ]
+        values = [
+            [4, 4, 4, 4, 4]
+            [4, 2, 2, 2, 4]
+            [4, 2, 2, 2, 4]
+            [4, 2, 2, 2, 4]
+            [4, 4, 4, 4, 4]
+        ]
         console.log tiles
         tiles.init values
         console.log tiles
