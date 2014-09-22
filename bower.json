@@ -1,0 +1,19 @@
+{
+  "name": "swarm2048",
+  "version": "0.0.0",
+  "homepage": "https://github.com/fshao816/swarm2048",
+  "authors": [
+    "frank shao <fshao@novus.com>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "~1.2.25"
+  }
+}
