@@ -4,6 +4,7 @@ module.exports = (grunt)->
     appFileOrdering = [
         'src/client/**/module.coffee'
         'src/client/**/template.jade'
+        'src/client/**/service.coffee'
         'src/client/**/controller.coffee'
         'src/client/**/directive.coffee'
     ].reduce flatten, []
@@ -75,6 +76,7 @@ module.exports = (grunt)->
                     cwd: 'bower_components'
                     src: [
                         'angular/angular.*'
+                        'angular-animate/angular-animate.*'
                     ]
                     dest: 'build/client/vendors'
                 ]
@@ -116,6 +118,7 @@ module.exports = (grunt)->
                     singleRun: true
                     preprocessors:
                         'src/client/**/module.coffee': ['coffee']
+                        'src/client/**/service.coffee': ['coffee']
                         'src/client/**/controller.coffee': ['coffee']
                         'src/client/**/directive.coffee': ['coffee']
                         'src/client/**/*test.coffee': ['coffee']

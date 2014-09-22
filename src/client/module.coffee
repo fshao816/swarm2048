@@ -1,1 +1,1 @@
-sw = angular.module 'swarm-2048', ['$animate']
+sw = angular.module 'swarm-2048', ['ngAnimate']

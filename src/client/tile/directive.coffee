@@ -1,8 +1,9 @@
 sw = angular.module 'swarm-2048'
 
-sw.directive 'swTile', ->
+sw.directive 'swTile', ($animate)->
     scope:
-        value: '=swValue'
+        tile: '=swData'
+        size: '=swSize'
     replace: true
     restrict: 'EA'
     templateUrl: 'tile'

@@ -1,7 +1,197 @@
 (function() {
   var sw;
 
-  sw = angular.module('swarm-2048', []);
+  sw = angular.module('swarm-2048', ['ngAnimate']);
+
+}).call(this);
+
+(function() {
+  var MODE, Tile, Tiles, sw,
+    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+
+  sw = angular.module('swarm-2048');
+
+  MODE = {
+    NORMAL: function(a, b) {
+      return a === b;
+    },
+    NONE: function(a, b) {
+      return true;
+    }
+  };
+
+  Tile = (function() {
+    function Tile(m, n) {
+      this.m = m;
+      this.n = n;
+      this.value = null;
+      this.reducible = false;
+    }
+
+    return Tile;
+
+  })();
+
+  Tiles = (function() {
+    var criteria, maxCols, maxRows, tiles;
+
+    tiles = [];
+
+    maxRows = 0;
+
+    maxCols = 0;
+
+    criteria = MODE.NONE;
+
+    function Tiles(rows, cols) {
+      var key, method, _fn;
+      this.rows = rows;
+      this.cols = cols;
+      this.combineLeft = __bind(this.combineLeft, this);
+      _fn = function(key, method) {
+        return tiles[key] = angular.isFunction(method) ? function() {
+          return method.apply(tiles, arguments);
+        } : method;
+      };
+      for (key in this) {
+        method = this[key];
+        if (tiles[key] != null) {
+          console.warn("Cannot redefine " + key + "!");
+          continue;
+        }
+        _fn(key, method);
+      }
+      return tiles;
+    }
+
+    Tiles.prototype.init = function(values) {
+      if (!(values.length > 0)) {
+        return;
+      }
+      return values.forEach(function(row, m) {
+        if (!((row instanceof Array) && row.length > 0)) {
+          return;
+        }
+        return row.forEach(function(value, n) {
+          var tile;
+          if (value != null) {
+            tile = new Tile(m, n);
+            tile.value = value;
+            return tiles.push(tile);
+          }
+        });
+      });
+    };
+
+    Tiles.prototype.byRow = function(a, b) {
+      if (a.m < b.m) {
+        return -1;
+      } else if (a.m > b.m) {
+        return 1;
+      } else if (a.n < b.n) {
+        return -1;
+      } else if (a.n > b.n) {
+        return 1;
+      } else {
+        return -1;
+      }
+    };
+
+    Tiles.prototype.byColumn = function(a, b) {
+      if (a.n < b.n) {
+        return -1;
+      } else if (a.n > b.n) {
+        return 1;
+      } else if (a.m < b.m) {
+        return -1;
+      } else if (a.m > b.m) {
+        return 1;
+      } else {
+        return -1;
+      }
+    };
+
+    Tiles.prototype.canCombine = function(key) {
+      return function(tile, i) {
+        var prev;
+        if (i === 0) {
+          return false;
+        }
+        prev = tiles[i - 1];
+        if (criteria(prev.value, tile.value) && prev[key] === tile[key]) {
+          return true;
+        } else {
+          return false;
+        }
+      };
+    };
+
+    Tiles.prototype.reducible = function() {
+      tiles.sort(this.byRow);
+      if (tiles.some(canCombine('m'))) {
+        return true;
+      }
+      tiles.sort(this.byColumn);
+      if (tiles.some(canCombine('n'))) {
+        return true;
+      }
+      return false;
+    };
+
+    Tiles.prototype.combineLeft = function() {
+      var previousRow, _i, _ref, _results;
+      tiles.sort(this.byRow);
+      tiles = tiles.filter(function(d) {
+        return !d.reduced;
+      });
+      previousRow = -1;
+      (function() {
+        _results = [];
+        for (var _i = 0, _ref = this.rows; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--){ _results.push(_i); }
+        return _results;
+      }).apply(this).forEach(function(m) {
+        var col, row;
+        row = tiles.filter(function(tile) {
+          return tile.m === m;
+        });
+        col = -1;
+        return row.forEach(function(tile, i) {
+          var next;
+          col++;
+          if (tile.reduced) {
+            col--;
+            return;
+          }
+          if (row[i + 1] == null) {
+            tile.n = col;
+            return;
+          }
+          next = row[i + 1];
+          if (criteria(tile.value, next.value)) {
+            next.reduced = true;
+            next.n = col;
+            tile.n = col;
+            tile.value = tile.value + next.value;
+            if (!next.$scope.$$phase) {
+              return tile.$scope.$digest();
+            }
+          } else {
+            return tile.n = col;
+          }
+        });
+      });
+      console.log(tiles);
+      return this.$rootScope.$broadcast('update');
+    };
+
+    return Tiles;
+
+  })();
+
+  sw.factory('Tiles', function($rootScope) {
+    Tiles.prototype.$rootScope = $rootScope;
+    return Tiles;
+  });
 
 }).call(this);
 
@@ -10,7 +200,91 @@
 
   sw = angular.module('swarm-2048');
 
-  sw.controller('swGridCtrl', function() {});
+  sw.factory('Utils', function($rootScope) {
+    var environment;
+    angular.element(window).on('keydown', function(val) {
+      return $rootScope.$broadcast('keydown', val);
+    });
+    environment = {
+      size: 0
+    };
+    return {
+      environment: environment
+    };
+  });
+
+}).call(this);
+
+(function() {
+  var SwGridController, sw;
+
+  sw = angular.module('swarm-2048');
+
+  SwGridController = (function() {
+    var grid;
+
+    grid = null;
+
+    function SwGridController($scope) {
+      var changeSize;
+      this.$scope = $scope;
+      changeSize = function() {
+        return $scope.size = {
+          rows: $scope.tiles.rows,
+          cols: $scope.tiles.cols
+        };
+      };
+      $scope.$watch('tiles.rows', changeSize);
+      $scope.$watch('tiles.cols', changeSize);
+    }
+
+    return SwGridController;
+
+  })();
+
+  sw.controller('swGridCtrl', ['$scope', SwGridController]);
+
+}).call(this);
+
+(function() {
+  var SwStageController, sw;
+
+  sw = angular.module('swarm-2048');
+
+  SwStageController = (function() {
+    var grid;
+
+    grid = null;
+
+    function SwStageController($scope, Tiles, $window, Utils, $timeout) {
+      var tiles, values;
+      this.$scope = $scope;
+      this.Tiles = Tiles;
+      this.$window = $window;
+      this.Utils = Utils;
+      tiles = new Tiles(5, 5);
+      values = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15], [16, 17, 18, 19, 20], [21, 22, 23, 24, 25]];
+      console.log(tiles);
+      tiles.init(values);
+      console.log(tiles);
+      this.$scope.tiles = tiles;
+      this.$scope.keydown = function() {
+        return console.log(arguments);
+      };
+      this.$scope.$on('keydown', function(e, val) {
+        switch (val.keyCode) {
+          case 37:
+            tiles.combineLeft();
+        }
+        return $scope.$apply();
+      });
+    }
+
+    return SwStageController;
+
+  })();
+
+  sw.controller('swStageCtrl', ['$scope', 'Tiles', '$window', 'Utils', '$timeout', SwStageController]);
 
 }).call(this);
 
@@ -19,7 +293,22 @@
 
   sw = angular.module('swarm-2048');
 
-  sw = sw.controller('swTileCtrl', function() {});
+  sw = sw.controller('swTileCtrl', function($scope, $animate) {
+    $scope.tile.$scope = $scope;
+    return $scope.style = function() {
+      var height, left, top, width;
+      height = 100 / ($scope.size.rows || 10);
+      width = 100 / ($scope.size.cols || 10);
+      top = $scope.tile.m * height;
+      left = $scope.tile.n * width;
+      return {
+        top: "" + top + "%",
+        left: "" + left + "%",
+        width: "" + width + "%",
+        height: "" + height + "%"
+      };
+    };
+  });
 
 }).call(this);
 
@@ -28,14 +317,14 @@
 
   sw = angular.module('swarm-2048');
 
-  sw.directive('sw-grid', function() {
+  sw.directive('swGameBoard', function() {
     return {
       scope: {
-        model: '=nvData'
+        tiles: '=swData'
       },
       replace: true,
       restrict: 'EA',
-      templateUrl: 'grid',
+      templateUrl: 'gameboard',
       controller: 'swGridCtrl'
     };
   });
@@ -47,10 +336,30 @@
 
   sw = angular.module('swarm-2048');
 
-  sw.directive('swTile', function() {
+  sw.directive('swStage', function() {
     return {
       scope: {
-        value: '=swValue'
+        model: '=nvData'
+      },
+      replace: true,
+      restrict: 'EA',
+      templateUrl: 'stage',
+      controller: 'swStageCtrl'
+    };
+  });
+
+}).call(this);
+
+(function() {
+  var sw;
+
+  sw = angular.module('swarm-2048');
+
+  sw.directive('swTile', function($animate) {
+    return {
+      scope: {
+        tile: '=swData',
+        size: '=swSize'
       },
       replace: true,
       restrict: 'EA',
