@@ -70,34 +70,73 @@ class Tiles
             return true
         return false
 
-    combineLeft: =>
-        tiles.sort @byRow
+    combine: (direction)=>
         tiles = tiles.filter (d)-> not d.reduced
-        previousRow = -1
-        [0...@rows].forEach (m)->
-            row = tiles.filter (tile)->
-                tile.m is m
-            col = -1
-            row.forEach (tile, i)->
-                col++
-                if tile.reduced
-                    col--
-                    return
-                unless row[i+1]?
-                    tile.n = col
-                    return
-                next = row[i+1]
-                if criteria(tile.value, next.value)
-                    next.reduced = true
-                    next.n = col
-                    tile.n = col
-                    # tiles.splice tiles.indexOf(next), 1
-                    tile.value = tile.value + next.value
-                    tile.$scope.$digest() unless next.$scope.$$phase
-                else
-                    tile.n = col
-        @$rootScope.$broadcast 'update'
+        config =
+            switch direction
+                when 'left'
+                    sorter: @byRow
+                    lines: @rows
+                    lineProperty: 'm'
+                    tileProperty: 'n'
+                    reverse: false
+                    start: 0
+                    nextIndex: (val)-> val + 1
+                when 'right'
+                    sorter: @byRow
+                    lines: @rows
+                    lineProperty: 'm'
+                    tileProperty: 'n'
+                    reverse: true
+                    start: @rows - 1
+                    nextIndex: (val)-> val - 1
+                when 'up'
+                    sorter: @byColumn
+                    lines: @cols
+                    lineProperty: 'n'
+                    tileProperty: 'm'
+                    reverse: false
+                    start: 0
+                    nextIndex: (val)-> val + 1
+                when 'down'
+                    sorter: @byColumn
+                    lines: @cols
+                    lineProperty: 'n'
+                    tileProperty: 'm'
+                    reverse: true
+                    start: @cols - 1
+                    nextIndex: (val)-> val - 1
+        @reducer config
 
+    reducer: (cfg)->
+        {
+            sorter
+            lines
+            lineProperty
+            tileProperty
+            reverse
+            start
+            nextIndex
+        } = cfg
+
+        tiles.sort sorter
+
+        tiles.reverse() if reverse
+        console.log tiles
+        [0...lines].forEach (dimension)->
+            line = tiles.filter (tile)-> tile[lineProperty] is dimension
+            current = start
+            line.forEach (tile, i)->
+                return if tile.reduced
+                tile[tileProperty] = current
+                next = line[i+1]
+                if next? and criteria(tile.value, next.value)
+                    next.reduced = true
+                    next[tileProperty] = current
+                    tile.value = tile.value + next.value
+                    tile.$scope.$digest() unless tile.$scope.$$phase
+                current = nextIndex current
+        @$rootScope.$broadcast 'update'
 
 
 

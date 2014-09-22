@@ -48,6 +48,7 @@
       this.rows = rows;
       this.cols = cols;
       this.combineLeft = __bind(this.combineLeft, this);
+      this.combine = __bind(this.combine, this);
       _fn = function(key, method) {
         return tiles[key] = angular.isFunction(method) ? function() {
           return method.apply(tiles, arguments);
@@ -138,6 +139,105 @@
       return false;
     };
 
+    Tiles.prototype.combine = function(direction) {
+      var config;
+      tiles = tiles.filter(function(d) {
+        return !d.reduced;
+      });
+      config = (function() {
+        switch (direction) {
+          case 'left':
+            return {
+              sorter: this.byRow,
+              lines: this.rows,
+              lineProperty: 'm',
+              tileProperty: 'n',
+              reverse: false,
+              start: 0,
+              nextIndex: function(val) {
+                return val + 1;
+              }
+            };
+          case 'right':
+            return {
+              sorter: this.byRow,
+              lines: this.rows,
+              lineProperty: 'm',
+              tileProperty: 'n',
+              reverse: true,
+              start: this.rows - 1,
+              nextIndex: function(val) {
+                return val - 1;
+              }
+            };
+          case 'up':
+            return {
+              sorter: this.byColumn,
+              lines: this.cols,
+              lineProperty: 'n',
+              tileProperty: 'm',
+              reverse: false,
+              start: 0,
+              nextIndex: function(val) {
+                return val + 1;
+              }
+            };
+          case 'down':
+            return {
+              sorter: this.byColumn,
+              lines: this.cols,
+              lineProperty: 'n',
+              tileProperty: 'm',
+              reverse: true,
+              start: this.cols - 1,
+              nextIndex: function(val) {
+                return val - 1;
+              }
+            };
+        }
+      }).call(this);
+      return this.reducer(config);
+    };
+
+    Tiles.prototype.reducer = function(cfg) {
+      var lineProperty, lines, nextIndex, reverse, sorter, start, tileProperty, _i, _results;
+      sorter = cfg.sorter, lines = cfg.lines, lineProperty = cfg.lineProperty, tileProperty = cfg.tileProperty, reverse = cfg.reverse, start = cfg.start, nextIndex = cfg.nextIndex;
+      tiles.sort(sorter);
+      if (reverse) {
+        tiles.reverse();
+      }
+      console.log(tiles);
+      (function() {
+        _results = [];
+        for (var _i = 0; 0 <= lines ? _i < lines : _i > lines; 0 <= lines ? _i++ : _i--){ _results.push(_i); }
+        return _results;
+      }).apply(this).forEach(function(dimension) {
+        var current, line;
+        line = tiles.filter(function(tile) {
+          return tile[lineProperty] === dimension;
+        });
+        current = start;
+        return line.forEach(function(tile, i) {
+          var next;
+          if (tile.reduced) {
+            return;
+          }
+          tile[tileProperty] = current;
+          next = line[i + 1];
+          if ((next != null) && criteria(tile.value, next.value)) {
+            next.reduced = true;
+            next[tileProperty] = current;
+            tile.value = tile.value + next.value;
+            if (!tile.$scope.$$phase) {
+              tile.$scope.$digest();
+            }
+          }
+          return current = nextIndex(current);
+        });
+      });
+      return this.$rootScope.$broadcast('update');
+    };
+
     Tiles.prototype.combineLeft = function() {
       var previousRow, _i, _ref, _results;
       tiles.sort(this.byRow);
@@ -154,33 +254,27 @@
         row = tiles.filter(function(tile) {
           return tile.m === m;
         });
-        col = -1;
+        col = 0;
         return row.forEach(function(tile, i) {
           var next;
-          col++;
           if (tile.reduced) {
-            col--;
             return;
           }
+          tile.n = col++;
           if (row[i + 1] == null) {
-            tile.n = col;
             return;
           }
           next = row[i + 1];
           if (criteria(tile.value, next.value)) {
             next.reduced = true;
-            next.n = col;
-            tile.n = col;
+            next.n = col - 1;
             tile.value = tile.value + next.value;
             if (!next.$scope.$$phase) {
               return tile.$scope.$digest();
             }
-          } else {
-            return tile.n = col;
           }
         });
       });
-      console.log(tiles);
       return this.$rootScope.$broadcast('update');
     };
 
@@ -272,9 +366,19 @@
         return console.log(arguments);
       };
       this.$scope.$on('keydown', function(e, val) {
+        console.log(val.keyCode);
         switch (val.keyCode) {
           case 37:
-            tiles.combineLeft();
+            tiles.combine('left');
+            break;
+          case 38:
+            tiles.combine('up');
+            break;
+          case 39:
+            tiles.combine('right');
+            break;
+          case 40:
+            tiles.combine('down');
         }
         return $scope.$apply();
       });

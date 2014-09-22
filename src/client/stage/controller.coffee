@@ -19,9 +19,16 @@ class SwStageController
         @$scope.keydown = ->
             console.log arguments
         @$scope.$on 'keydown', (e, val)->
+            console.log val.keyCode
             switch val.keyCode
                 when 37
-                    tiles.combineLeft()
+                    tiles.combine 'left'
+                when 38
+                    tiles.combine 'up'
+                when 39
+                    tiles.combine 'right'
+                when 40
+                    tiles.combine 'down'
             $scope.$apply()
 
 sw.controller 'swStageCtrl', [
