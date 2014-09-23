@@ -1,6 +1,6 @@
 angular.module('swarm-2048').run(function($templateCache) {
   $templateCache.put('gameboard',
-    '<div class="grid"><sw-tile ng-repeat="tile in tiles" sw-data="tile" sw-size="size" class="animate-repeat"></sw-tile></div>'
+    '<div class="grid"><sw-tile ng-repeat="tile in tiles.data track by tile.id" sw-data="tile" sw-size="size" class="animate-repeat"></sw-tile></div>'
   );
 });
 

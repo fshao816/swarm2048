@@ -1,7 +1,7 @@
 .grid
     sw-tile(
         class="animate-repeat"
-        ng-repeat="tile in tiles"
+        ng-repeat="tile in tiles.data track by tile.id"
         sw-data="tile"
         sw-size="size"
     )

@@ -4,40 +4,48 @@ MODE =
     NORMAL: (a, b)-> a is b
     NONE: (a, b)-> true
 
+tileId = 0
+
 class Tile
     constructor: (@m, @n)->
+        @id = tileId++
         @value = null
         @reducible = no
 
 class Tiles
-    tiles = []
     maxRows = 0
     maxCols = 0
-    criteria = MODE.NONE
+    criteria = MODE.NORMAL
+    freeSpace = []
+    freeSpace.reset = ->
+        Array::forEach.call freeSpace, (row)->
+            [0...row.length].forEach (i)->
+                row[i] = true
+
+    freeSpace.free = ->
+        result = []
+        Array::forEach.call freeSpace, (row, m)->
+            row.forEach (free, n)->
+                result.push {m, n} if free
+        result
 
     constructor: (@rows, @cols)->
-        for key, method of @
-            if tiles[key]?
-                console.warn "Cannot redefine #{key}!"
-                continue
-            do (key, method)->
-                tiles[key] =
-                    if angular.isFunction method
-                        -> method.apply(tiles, arguments)
-                    else
-                        method
-
-        return tiles
+        [0...rows].forEach ->
+            freeSpace.push([0...cols].map -> true)
+        @data = []
 
     init: (values)->
         return unless values.length > 0
-        values.forEach (row, m)->
+
+        freeSpace.reset()
+        values.forEach (row, m)=>
             return unless (row instanceof Array) and row.length > 0
-            row.forEach (value, n)->
+            row.forEach (value, n)=>
                 if value?
                     tile = new Tile m, n
                     tile.value = value
-                    tiles.push tile
+                    @data.push tile
+                    freeSpace[m][n] = false
 
     byRow: (a, b)->
         if a.m < b.m then -1
@@ -53,25 +61,44 @@ class Tiles
         else if a.m > b.m then 1
         else -1
 
-    canCombine: (key)-> (tile, i)->
+    canCombine: (key)-> (tile, i)=>
         return false if i is 0
-        prev = tiles[i - 1]
+        prev = @data[i - 1]
         if criteria(prev.value, tile.value) and prev[key] is tile[key]
             true
         else
             false
 
-    reducible: ->
-        tiles.sort @byRow
-        if tiles.some canCombine('m')
+    reducible: =>
+        @data.sort @byRow
+        if @data.some canCombine('m')
             return true
-        tiles.sort @byColumn
-        if tiles.some canCombine('n')
+        @data.sort @byColumn
+        if @data.some canCombine('n')
             return true
         return false
 
+    spawn: (num = 1)->
+        free = freeSpace.free()
+
+        [0...num].forEach =>
+            i = parseInt(Math.random() * free.length)
+            {m, n} = free[i]
+            console.log 'new tile', m, n
+            tile = new Tile m, n
+            tile.value = 2
+            @data.push tile
+            freeSpace[m][n] = false
+
+    cleanReduced: =>
+        reduced = @data.filter (d)-> d.reduced
+        reduced.forEach (d)=>
+            i = @data.indexOf d
+            @data.splice i, 1
+
     combine: (direction)=>
-        tiles = tiles.filter (d)-> not d.reduced
+        @cleanReduced()
+        # @data = @data.filter (d)-> not d.reduced
         config =
             switch direction
                 when 'left'
@@ -119,24 +146,32 @@ class Tiles
             nextIndex
         } = cfg
 
-        tiles.sort sorter
+        freeSpace.reset()
 
-        tiles.reverse() if reverse
-        console.log tiles
-        [0...lines].forEach (dimension)->
-            line = tiles.filter (tile)-> tile[lineProperty] is dimension
+        sorted = @data.slice(0).sort sorter
+
+        sorted.reverse() if reverse
+
+        changed = false
+
+        [0...lines].forEach (dimension)=>
+            line = sorted.filter (tile)-> tile[lineProperty] is dimension
             current = start
             line.forEach (tile, i)->
                 return if tile.reduced
-                tile[tileProperty] = current
+                if tile[tileProperty] isnt current
+                    changed = true
+                    tile[tileProperty] = current
+                freeSpace[tile.m][tile.n] = false
                 next = line[i+1]
                 if next? and criteria(tile.value, next.value)
                     next.reduced = true
                     next[tileProperty] = current
                     tile.value = tile.value + next.value
-                    tile.$scope.$digest() unless tile.$scope.$$phase
                 current = nextIndex current
-        @$rootScope.$broadcast 'update'
+
+        console.log freeSpace
+        changed
 
 
 

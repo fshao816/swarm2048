@@ -35,6 +35,7 @@ module.exports = (grunt)->
                     'src/style/definitions'
                 ]
                 import: [
+                    'variables'
                 ]
             all:
                 files:

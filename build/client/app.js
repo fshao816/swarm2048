@@ -6,7 +6,7 @@
 }).call(this);
 
 (function() {
-  var MODE, Tile, Tiles, sw,
+  var MODE, Tile, Tiles, sw, tileId,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
   sw = angular.module('swarm-2048');
@@ -20,10 +20,13 @@
     }
   };
 
+  tileId = 0;
+
   Tile = (function() {
     function Tile(m, n) {
       this.m = m;
       this.n = n;
+      this.id = tileId++;
       this.value = null;
       this.reducible = false;
     }
@@ -33,42 +36,75 @@
   })();
 
   Tiles = (function() {
-    var criteria, maxCols, maxRows, tiles;
-
-    tiles = [];
+    var criteria, freeSpace, maxCols, maxRows;
 
     maxRows = 0;
 
     maxCols = 0;
 
-    criteria = MODE.NONE;
+    criteria = MODE.NORMAL;
+
+    freeSpace = [];
+
+    freeSpace.reset = function() {
+      return Array.prototype.forEach.call(freeSpace, function(row) {
+        var _i, _ref, _results;
+        return (function() {
+          _results = [];
+          for (var _i = 0, _ref = row.length; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--){ _results.push(_i); }
+          return _results;
+        }).apply(this).forEach(function(i) {
+          return row[i] = true;
+        });
+      });
+    };
+
+    freeSpace.free = function() {
+      var result;
+      result = [];
+      Array.prototype.forEach.call(freeSpace, function(row, m) {
+        return row.forEach(function(free, n) {
+          if (free) {
+            return result.push({
+              m: m,
+              n: n
+            });
+          }
+        });
+      });
+      return result;
+    };
 
     function Tiles(rows, cols) {
-      var key, method, _fn;
+      var _i, _results;
       this.rows = rows;
       this.cols = cols;
-      this.combineLeft = __bind(this.combineLeft, this);
       this.combine = __bind(this.combine, this);
-      _fn = function(key, method) {
-        return tiles[key] = angular.isFunction(method) ? function() {
-          return method.apply(tiles, arguments);
-        } : method;
-      };
-      for (key in this) {
-        method = this[key];
-        if (tiles[key] != null) {
-          console.warn("Cannot redefine " + key + "!");
-          continue;
-        }
-        _fn(key, method);
-      }
-      return tiles;
+      this.cleanReduced = __bind(this.cleanReduced, this);
+      this.reducible = __bind(this.reducible, this);
+      (function() {
+        _results = [];
+        for (var _i = 0; 0 <= rows ? _i < rows : _i > rows; 0 <= rows ? _i++ : _i--){ _results.push(_i); }
+        return _results;
+      }).apply(this).forEach(function() {
+        var _i, _results;
+        return freeSpace.push((function() {
+          _results = [];
+          for (var _i = 0; 0 <= cols ? _i < cols : _i > cols; 0 <= cols ? _i++ : _i--){ _results.push(_i); }
+          return _results;
+        }).apply(this).map(function() {
+          return true;
+        }));
+      });
+      this.data = [];
     }
 
     Tiles.prototype.init = function(values) {
+      var _this = this;
       if (!(values.length > 0)) {
         return;
       }
+      freeSpace.reset();
       return values.forEach(function(row, m) {
         if (!((row instanceof Array) && row.length > 0)) {
           return;
@@ -78,7 +114,8 @@
           if (value != null) {
             tile = new Tile(m, n);
             tile.value = value;
-            return tiles.push(tile);
+            _this.data.push(tile);
+            return freeSpace[m][n] = false;
           }
         });
       });
@@ -113,12 +150,13 @@
     };
 
     Tiles.prototype.canCombine = function(key) {
+      var _this = this;
       return function(tile, i) {
         var prev;
         if (i === 0) {
           return false;
         }
-        prev = tiles[i - 1];
+        prev = _this.data[i - 1];
         if (criteria(prev.value, tile.value) && prev[key] === tile[key]) {
           return true;
         } else {
@@ -128,22 +166,56 @@
     };
 
     Tiles.prototype.reducible = function() {
-      tiles.sort(this.byRow);
-      if (tiles.some(canCombine('m'))) {
+      this.data.sort(this.byRow);
+      if (this.data.some(canCombine('m'))) {
         return true;
       }
-      tiles.sort(this.byColumn);
-      if (tiles.some(canCombine('n'))) {
+      this.data.sort(this.byColumn);
+      if (this.data.some(canCombine('n'))) {
         return true;
       }
       return false;
     };
 
+    Tiles.prototype.spawn = function(num) {
+      var free, _i, _results,
+        _this = this;
+      if (num == null) {
+        num = 1;
+      }
+      free = freeSpace.free();
+      return (function() {
+        _results = [];
+        for (var _i = 0; 0 <= num ? _i < num : _i > num; 0 <= num ? _i++ : _i--){ _results.push(_i); }
+        return _results;
+      }).apply(this).forEach(function() {
+        var i, m, n, tile, _ref;
+        i = parseInt(Math.random() * free.length);
+        _ref = free[i], m = _ref.m, n = _ref.n;
+        console.log('new tile', m, n);
+        tile = new Tile(m, n);
+        tile.value = 2;
+        _this.data.push(tile);
+        return freeSpace[m][n] = false;
+      });
+    };
+
+    Tiles.prototype.cleanReduced = function() {
+      var reduced,
+        _this = this;
+      reduced = this.data.filter(function(d) {
+        return d.reduced;
+      });
+      return reduced.forEach(function(d) {
+        var i;
+        i = _this.data.indexOf(d);
+        return _this.data.splice(i, 1);
+      });
+    };
+
     Tiles.prototype.combine = function(direction) {
       var config;
-      tiles = tiles.filter(function(d) {
-        return !d.reduced;
-      });
+      this.cleanReduced();
       config = (function() {
         switch (direction) {
           case 'left':
@@ -200,20 +272,22 @@
     };
 
     Tiles.prototype.reducer = function(cfg) {
-      var lineProperty, lines, nextIndex, reverse, sorter, start, tileProperty, _i, _results;
+      var changed, lineProperty, lines, nextIndex, reverse, sorted, sorter, start, tileProperty, _i, _results,
+        _this = this;
       sorter = cfg.sorter, lines = cfg.lines, lineProperty = cfg.lineProperty, tileProperty = cfg.tileProperty, reverse = cfg.reverse, start = cfg.start, nextIndex = cfg.nextIndex;
-      tiles.sort(sorter);
+      freeSpace.reset();
+      sorted = this.data.slice(0).sort(sorter);
       if (reverse) {
-        tiles.reverse();
+        sorted.reverse();
       }
-      console.log(tiles);
+      changed = false;
       (function() {
         _results = [];
         for (var _i = 0; 0 <= lines ? _i < lines : _i > lines; 0 <= lines ? _i++ : _i--){ _results.push(_i); }
         return _results;
       }).apply(this).forEach(function(dimension) {
         var current, line;
-        line = tiles.filter(function(tile) {
+        line = sorted.filter(function(tile) {
           return tile[lineProperty] === dimension;
         });
         current = start;
@@ -222,60 +296,22 @@
           if (tile.reduced) {
             return;
           }
-          tile[tileProperty] = current;
+          if (tile[tileProperty] !== current) {
+            changed = true;
+            tile[tileProperty] = current;
+          }
+          freeSpace[tile.m][tile.n] = false;
           next = line[i + 1];
           if ((next != null) && criteria(tile.value, next.value)) {
             next.reduced = true;
             next[tileProperty] = current;
             tile.value = tile.value + next.value;
-            if (!tile.$scope.$$phase) {
-              tile.$scope.$digest();
-            }
           }
           return current = nextIndex(current);
         });
       });
-      return this.$rootScope.$broadcast('update');
-    };
-
-    Tiles.prototype.combineLeft = function() {
-      var previousRow, _i, _ref, _results;
-      tiles.sort(this.byRow);
-      tiles = tiles.filter(function(d) {
-        return !d.reduced;
-      });
-      previousRow = -1;
-      (function() {
-        _results = [];
-        for (var _i = 0, _ref = this.rows; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--){ _results.push(_i); }
-        return _results;
-      }).apply(this).forEach(function(m) {
-        var col, row;
-        row = tiles.filter(function(tile) {
-          return tile.m === m;
-        });
-        col = 0;
-        return row.forEach(function(tile, i) {
-          var next;
-          if (tile.reduced) {
-            return;
-          }
-          tile.n = col++;
-          if (row[i + 1] == null) {
-            return;
-          }
-          next = row[i + 1];
-          if (criteria(tile.value, next.value)) {
-            next.reduced = true;
-            next.n = col - 1;
-            tile.value = tile.value + next.value;
-            if (!next.$scope.$$phase) {
-              return tile.$scope.$digest();
-            }
-          }
-        });
-      });
-      return this.$rootScope.$broadcast('update');
+      console.log(freeSpace);
+      return changed;
     };
 
     return Tiles;
@@ -350,37 +386,41 @@
 
     grid = null;
 
-    function SwStageController($scope, Tiles, $window, Utils, $timeout) {
+    function SwStageController($scope, Tiles, $window, Utils, $timeout, $rootScope) {
       var tiles, values;
       this.$scope = $scope;
       this.Tiles = Tiles;
       this.$window = $window;
       this.Utils = Utils;
+      this.$rootScope = $rootScope;
       tiles = new Tiles(5, 5);
       values = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15], [16, 17, 18, 19, 20], [21, 22, 23, 24, 25]];
-      console.log(tiles);
+      values = [[4, 4, 4, 4, 4], [4, 2, 2, 2, 4], [4, 2, 2, 2, 4], [4, 2, 2, 2, 4], [4, 4, 4, 4, 4]];
       tiles.init(values);
-      console.log(tiles);
       this.$scope.tiles = tiles;
       this.$scope.keydown = function() {
         return console.log(arguments);
       };
       this.$scope.$on('keydown', function(e, val) {
+        var changed;
         console.log(val.keyCode);
-        switch (val.keyCode) {
-          case 37:
-            tiles.combine('left');
-            break;
-          case 38:
-            tiles.combine('up');
-            break;
-          case 39:
-            tiles.combine('right');
-            break;
-          case 40:
-            tiles.combine('down');
+        changed = (function() {
+          switch (val.keyCode) {
+            case 37:
+              return tiles.combine('left');
+            case 38:
+              return tiles.combine('up');
+            case 39:
+              return tiles.combine('right');
+            case 40:
+              return tiles.combine('down');
+          }
+        })();
+        console.log('changed', changed);
+        if (changed) {
+          tiles.spawn();
         }
-        return $scope.$apply();
+        return $rootScope.$apply();
       });
     }
 
@@ -388,7 +428,7 @@
 
   })();
 
-  sw.controller('swStageCtrl', ['$scope', 'Tiles', '$window', 'Utils', '$timeout', SwStageController]);
+  sw.controller('swStageCtrl', ['$scope', 'Tiles', '$window', 'Utils', '$timeout', '$rootScope', SwStageController]);
 
 }).call(this);
 

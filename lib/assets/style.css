@@ -3,11 +3,12 @@ body{font:13px/1.231 Helvetica,arial,sans-serif}
 #main-board{height:400px;width:400px}
 .grid ._row{margin:0;padding:0;position:relative;}
 .grid ._row ._cell{margin:0;padding:0;display:inline-block;position:relative}
-.animate-repeat,.tile ._inner{-webkit-transition:all linear .1s;transition:all linear .1s}
-.animate-repeat.ng-leave.ng-leave-active,.animate-repeat.ng-move,.animate-repeat.ng-enter{opacity:0}
-.animate-repeat.ng-leave,.animate-repeat.ng-enter.ng-enter-active{opacity:1}
+.animate-repeat,.tile{-webkit-transition:all linear 100ms;transition:all linear 100ms}
+.animate-repeat.ng-leave.ng-leave-active,.animate-repeat.ng-enter{opacity:0}
+.animate-repeat.ng-leave,.animate-repeat.ng-move,.animate-repeat.ng-enter.ng-enter-active{opacity:1;-webkit-transition-delay:100ms;transition-delay:100ms}
+.animate-repeat.ng-move.ng-move-active{opacity:1}
 
 .tile{display:block;position:absolute;}
-.tile ._inner{-webkit-transition:opacity linear .1s;transition:opacity linear .1s;border:1px solid #000;display:block;position:relative;height:100%;width:100%;text-align:center;}
-.tile ._inner ._value{font-size:13px;vertical-align:middle;display:inline-block;position:absolute;margin:auto;right:0;left:0;bottom:0;top:0;height:13px}
+.tile ._inner{-webkit-transition:opacity linear 100ms;transition:opacity linear 100ms;background-color:#aaa;display:block;position:relative;height:96%;width:96%;left:3%;top:2%;border-radius:.7em;text-align:center;}
+.tile ._inner ._value{font-size:22px;vertical-align:middle;display:inline-block;position:absolute;margin:auto;right:0;left:0;bottom:0;top:0;height:13px}
 .tile ._inner.-reduced{opacity:0}

@@ -2,16 +2,19 @@
     display block
     position absolute
     ._inner
-        -webkit-transition opacity linear 0.1s
-        transition opacity linear 0.1s
-        border 1px solid black
+        -webkit-transition opacity linear $timing
+        transition opacity linear $timing
+        background-color #AAA
         display block
         position relative
-        height 100%
-        width 100%
+        height 96%
+        width 96%
+        left 3%
+        top 2%
+        border-radius 0.7em
         text-align center
         ._value
-            font-size 13px
+            font-size 22px
             vertical-align middle
             display inline-block
             position absolute
