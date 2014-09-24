@@ -3,6 +3,7 @@ sw = angular.module 'swarm-2048'
 class SwStageController
     grid = null
     constructor: (@$scope, @Tiles, @$window, @Utils, $timeout, @$rootScope)->
+        socket = io()
         tiles = new Tiles(5, 5)
         values = [
             [1, 2, 3, 4, 5]
@@ -35,7 +36,7 @@ class SwStageController
                         tiles.combine 'right'
                     when 40
                         tiles.combine 'down'
-            tiles.spawn() if changed
+            tiles.spawn(1) if changed
             $rootScope.$apply()
 
 

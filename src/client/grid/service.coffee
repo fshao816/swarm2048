@@ -4,6 +4,8 @@ MODE =
     NORMAL: (a, b)-> a is b
     NONE: (a, b)-> true
 
+LEVELS = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
+
 tileId = 0
 
 class Tile
@@ -11,6 +13,7 @@ class Tile
         @id = tileId++
         @value = null
         @reducible = no
+        @level = 0
 
 class Tiles
     maxRows = 0
@@ -41,9 +44,11 @@ class Tiles
         values.forEach (row, m)=>
             return unless (row instanceof Array) and row.length > 0
             row.forEach (value, n)=>
+                return if m >= @rows or n >= @cols
                 if value?
                     tile = new Tile m, n
                     tile.value = value
+                    tile.level = @leveler tile.value
                     @data.push tile
                     freeSpace[m][n] = false
 
@@ -82,9 +87,10 @@ class Tiles
         free = freeSpace.free()
 
         [0...num].forEach =>
+            return if free.length is 0
             i = parseInt(Math.random() * free.length)
             {m, n} = free[i]
-            console.log 'new tile', m, n
+            free.splice i, 1
             tile = new Tile m, n
             tile.value = 2
             @data.push tile
@@ -135,6 +141,10 @@ class Tiles
                     nextIndex: (val)-> val - 1
         @reducer config
 
+    leveler: (val)->
+        Math.max LEVELS.indexOf(val), 0
+
+
     reducer: (cfg)->
         {
             sorter
@@ -157,7 +167,7 @@ class Tiles
         [0...lines].forEach (dimension)=>
             line = sorted.filter (tile)-> tile[lineProperty] is dimension
             current = start
-            line.forEach (tile, i)->
+            line.forEach (tile, i)=>
                 return if tile.reduced
                 if tile[tileProperty] isnt current
                     changed = true
@@ -168,9 +178,9 @@ class Tiles
                     next.reduced = true
                     next[tileProperty] = current
                     tile.value = tile.value + next.value
+                    tile.level = @leveler tile.value
                 current = nextIndex current
 
-        console.log freeSpace
         changed
 
 

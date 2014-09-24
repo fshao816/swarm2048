@@ -1,3 +1,6 @@
 .tile(ng-style="style()")
-    ._inner(ng-class="{'-reduced': tile.reduced}")
+    ._inner(
+        ng-class="{'-reduced': tile.reduced}"
+        class="-level-{{tile.level}}"
+    )
         ._value {{tile.value}}

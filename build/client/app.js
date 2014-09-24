@@ -6,7 +6,7 @@
 }).call(this);
 
 (function() {
-  var MODE, Tile, Tiles, sw, tileId,
+  var LEVELS, MODE, Tile, Tiles, sw, tileId,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
   sw = angular.module('swarm-2048');
@@ -20,6 +20,8 @@
     }
   };
 
+  LEVELS = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192];
+
   tileId = 0;
 
   Tile = (function() {
@@ -29,6 +31,7 @@
       this.id = tileId++;
       this.value = null;
       this.reducible = false;
+      this.level = 0;
     }
 
     return Tile;
@@ -111,9 +114,13 @@
         }
         return row.forEach(function(value, n) {
           var tile;
+          if (m >= _this.rows || n >= _this.cols) {
+            return;
+          }
           if (value != null) {
             tile = new Tile(m, n);
             tile.value = value;
+            tile.level = _this.leveler(tile.value);
             _this.data.push(tile);
             return freeSpace[m][n] = false;
           }
@@ -190,9 +197,12 @@
         return _results;
       }).apply(this).forEach(function() {
         var i, m, n, tile, _ref;
+        if (free.length === 0) {
+          return;
+        }
         i = parseInt(Math.random() * free.length);
         _ref = free[i], m = _ref.m, n = _ref.n;
-        console.log('new tile', m, n);
+        free.splice(i, 1);
         tile = new Tile(m, n);
         tile.value = 2;
         _this.data.push(tile);
@@ -271,6 +281,10 @@
       return this.reducer(config);
     };
 
+    Tiles.prototype.leveler = function(val) {
+      return Math.max(LEVELS.indexOf(val), 0);
+    };
+
     Tiles.prototype.reducer = function(cfg) {
       var changed, lineProperty, lines, nextIndex, reverse, sorted, sorter, start, tileProperty, _i, _results,
         _this = this;
@@ -306,11 +320,11 @@
             next.reduced = true;
             next[tileProperty] = current;
             tile.value = tile.value + next.value;
+            tile.level = _this.leveler(tile.value);
           }
           return current = nextIndex(current);
         });
       });
-      console.log(freeSpace);
       return changed;
     };
 
@@ -387,12 +401,13 @@
     grid = null;
 
     function SwStageController($scope, Tiles, $window, Utils, $timeout, $rootScope) {
-      var tiles, values;
+      var socket, tiles, values;
       this.$scope = $scope;
       this.Tiles = Tiles;
       this.$window = $window;
       this.Utils = Utils;
       this.$rootScope = $rootScope;
+      socket = io();
       tiles = new Tiles(5, 5);
       values = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15], [16, 17, 18, 19, 20], [21, 22, 23, 24, 25]];
       values = [[4, 4, 4, 4, 4], [4, 2, 2, 2, 4], [4, 2, 2, 2, 4], [4, 2, 2, 2, 4], [4, 4, 4, 4, 4]];
@@ -416,9 +431,8 @@
               return tiles.combine('down');
           }
         })();
-        console.log('changed', changed);
         if (changed) {
-          tiles.spawn();
+          tiles.spawn(1);
         }
         return $rootScope.$apply();
       });
