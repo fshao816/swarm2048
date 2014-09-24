@@ -6,6 +6,21 @@
 }).call(this);
 
 (function() {
+  var sw;
+
+  sw = angular.module('swarm-2048');
+
+  sw.factory('auth', function() {
+    var id;
+    id = 'user-' + parseInt(Math.random() * 10000000);
+    return {
+      id: id
+    };
+  });
+
+}).call(this);
+
+(function() {
   var LEVELS, MODE, Tile, Tiles, sw, tileId,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
@@ -85,6 +100,7 @@
       this.combine = __bind(this.combine, this);
       this.cleanReduced = __bind(this.cleanReduced, this);
       this.reducible = __bind(this.reducible, this);
+      this.update = __bind(this.update, this);
       (function() {
         _results = [];
         for (var _i = 0; 0 <= rows ? _i < rows : _i > rows; 0 <= rows ? _i++ : _i--){ _results.push(_i); }
@@ -125,6 +141,19 @@
             return freeSpace[m][n] = false;
           }
         });
+      });
+    };
+
+    Tiles.prototype.update = function(values) {
+      return this.data.forEach(function(tile) {
+        var _ref;
+        if (tile.reduced) {
+          return;
+        }
+        if (((_ref = values[tile.m]) != null ? _ref[tile.n] : void 0) != null) {
+          tile.value = values[tile.m][tile.n];
+          return tile.level = this.leveler(tile.value);
+        }
       });
     };
 
@@ -286,7 +315,7 @@
     };
 
     Tiles.prototype.reducer = function(cfg) {
-      var changed, lineProperty, lines, nextIndex, reverse, sorted, sorter, start, tileProperty, _i, _results,
+      var changed, lineProperty, lines, nextIndex, reverse, sorted, sorter, start, status, tileProperty, _i, _j, _ref, _results, _results1,
         _this = this;
       sorter = cfg.sorter, lines = cfg.lines, lineProperty = cfg.lineProperty, tileProperty = cfg.tileProperty, reverse = cfg.reverse, start = cfg.start, nextIndex = cfg.nextIndex;
       freeSpace.reset();
@@ -294,11 +323,21 @@
       if (reverse) {
         sorted.reverse();
       }
+      status = {
+        changed: false,
+        position: (function() {
+          _results = [];
+          for (var _i = 0, _ref = this.rows; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--){ _results.push(_i); }
+          return _results;
+        }).apply(this).map(function(d) {
+          return [];
+        })
+      };
       changed = false;
       (function() {
-        _results = [];
-        for (var _i = 0; 0 <= lines ? _i < lines : _i > lines; 0 <= lines ? _i++ : _i--){ _results.push(_i); }
-        return _results;
+        _results1 = [];
+        for (var _j = 0; 0 <= lines ? _j < lines : _j > lines; 0 <= lines ? _j++ : _j--){ _results1.push(_j); }
+        return _results1;
       }).apply(this).forEach(function(dimension) {
         var current, line;
         line = sorted.filter(function(tile) {
@@ -311,7 +350,7 @@
             return;
           }
           if (tile[tileProperty] !== current) {
-            changed = true;
+            status.changed = true;
             tile[tileProperty] = current;
           }
           freeSpace[tile.m][tile.n] = false;
@@ -321,11 +360,12 @@
             next[tileProperty] = current;
             tile.value = tile.value + next.value;
             tile.level = _this.leveler(tile.value);
+            status.position[tile.m][tile.n] = tile.value;
           }
           return current = nextIndex(current);
         });
       });
-      return changed;
+      return status;
     };
 
     return Tiles;
@@ -335,6 +375,63 @@
   sw.factory('Tiles', function($rootScope) {
     Tiles.prototype.$rootScope = $rootScope;
     return Tiles;
+  });
+
+}).call(this);
+
+(function() {
+  var sw;
+
+  sw = angular.module('swarm-2048');
+
+  sw.factory('opponents', function($rootScope, Tiles) {
+    return {
+      list: list
+    };
+  });
+
+}).call(this);
+
+(function() {
+  var sw;
+
+  sw = angular.module('swarm-2048');
+
+  sw.factory('socket', function($rootScope, auth) {
+    var connect, position, socket;
+    socket = null;
+    connect = function() {
+      if (socket == null) {
+        socket = io();
+        socket.on('addPlayers', function(data) {
+          return $rootScope.$broadcast('socket:addPlayers', data);
+        });
+        socket.on('updatePlayers', function(data) {
+          console.log('socket update players');
+          return $rootScope.$broadcast('socket:updatePlayers', data);
+        });
+        socket.on('identify', function() {
+          return socket.emit('identify', auth.id);
+        });
+        socket.on('position', function() {
+          console.log('socket position');
+          return $rootScope.$broadcast('socket:position');
+        });
+        return socket.on('disconnect', function(id) {
+          return $rootScope.$broadcast('socket:disconnect', id);
+        });
+      }
+    };
+    position = function(data) {
+      return socket.emit('position', {
+        id: auth.id,
+        position: data
+      });
+    };
+    return {
+      connect: connect,
+      position: position
+    };
   });
 
 }).call(this);
@@ -400,26 +497,39 @@
 
     grid = null;
 
-    function SwStageController($scope, Tiles, $window, Utils, $timeout, $rootScope) {
-      var socket, tiles, values;
+    function SwStageController($scope, Tiles, Utils, $rootScope, socket) {
+      var tiles, values;
       this.$scope = $scope;
       this.Tiles = Tiles;
-      this.$window = $window;
       this.Utils = Utils;
       this.$rootScope = $rootScope;
-      socket = io();
-      tiles = new Tiles(5, 5);
+      socket.connect();
+      tiles = new Tiles(40, 40);
       values = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15], [16, 17, 18, 19, 20], [21, 22, 23, 24, 25]];
       values = [[4, 4, 4, 4, 4], [4, 2, 2, 2, 4], [4, 2, 2, 2, 4], [4, 2, 2, 2, 4], [4, 4, 4, 4, 4]];
       tiles.init(values);
       this.$scope.tiles = tiles;
-      this.$scope.keydown = function() {
-        return console.log(arguments);
-      };
+      this.$scope.$on('socket:position', function() {
+        var position, _i, _ref, _results;
+        position = (function() {
+          _results = [];
+          for (var _i = 0, _ref = tiles.rows; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--){ _results.push(_i); }
+          return _results;
+        }).apply(this).map(function() {
+          return [];
+        });
+        tiles.data.forEach(function(tile) {
+          if (tile.reduced) {
+            return;
+          }
+          return position[tile.m][tile.n] = tile.value;
+        });
+        return socket.position(position);
+      });
       this.$scope.$on('keydown', function(e, val) {
-        var changed;
+        var status;
         console.log(val.keyCode);
-        changed = (function() {
+        status = (function() {
           switch (val.keyCode) {
             case 37:
               return tiles.combine('left');
@@ -431,8 +541,8 @@
               return tiles.combine('down');
           }
         })();
-        if (changed) {
-          tiles.spawn(1);
+        if (status.changed) {
+          tiles.spawn(10);
         }
         return $rootScope.$apply();
       });
@@ -442,7 +552,7 @@
 
   })();
 
-  sw.controller('swStageCtrl', ['$scope', 'Tiles', '$window', 'Utils', '$timeout', '$rootScope', SwStageController]);
+  sw.controller('swStageCtrl', ['$scope', 'Tiles', 'Utils', '$rootScope', 'socket', SwStageController]);
 
 }).call(this);
 

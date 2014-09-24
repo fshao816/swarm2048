@@ -23,5 +23,5 @@ body{font:13px/1.231 Helvetica,arial,sans-serif}
 
 .tile{display:block;position:absolute;}
 .tile ._inner{-webkit-transition:opacity linear 100ms;transition:opacity linear 100ms;display:block;position:relative;height:96%;width:96%;left:3%;top:2%;border-radius:.7em;text-align:center;}
-.tile ._inner ._value{font-size:22px;vertical-align:middle;display:inline-block;position:absolute;margin:auto;right:0;left:0;bottom:0;top:0;height:13px}
+.tile ._inner ._value{font-size:8px;vertical-align:middle;display:inline-block;position:absolute;margin:auto;right:0;left:0;bottom:0;top:0;height:13px}
 .tile ._inner.-reduced{opacity:0}

@@ -52,6 +52,13 @@ class Tiles
                     @data.push tile
                     freeSpace[m][n] = false
 
+    update: (values)=>
+        @data.forEach (tile)->
+            return if tile.reduced
+            if values[tile.m]?[tile.n]?
+                tile.value = values[tile.m][tile.n]
+                tile.level = @leveler tile.value
+
     byRow: (a, b)->
         if a.m < b.m then -1
         else if a.m > b.m then 1
@@ -162,6 +169,9 @@ class Tiles
 
         sorted.reverse() if reverse
 
+        status =
+            changed: false
+            position: [0...@rows].map (d)-> []
         changed = false
 
         [0...lines].forEach (dimension)=>
@@ -170,7 +180,7 @@ class Tiles
             line.forEach (tile, i)=>
                 return if tile.reduced
                 if tile[tileProperty] isnt current
-                    changed = true
+                    status.changed = true
                     tile[tileProperty] = current
                 freeSpace[tile.m][tile.n] = false
                 next = line[i+1]
@@ -179,9 +189,10 @@ class Tiles
                     next[tileProperty] = current
                     tile.value = tile.value + next.value
                     tile.level = @leveler tile.value
+                    status.position[tile.m][tile.n] = tile.value
                 current = nextIndex current
 
-        changed
+        status
 
 
 

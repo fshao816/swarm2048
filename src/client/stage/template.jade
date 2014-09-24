@@ -1,2 +1,8 @@
 .stage
-    sw-game-board#main-board(sw-data="tiles")
+    .opponents
+        .opponent(ng-repeat='opponent in opponents')
+            sw-game-board(sw-data="opponent.tiles")
+            .name {{ opponent.name }}
+    .player
+        sw-game-board#main-board(sw-data="tiles")
+    .log

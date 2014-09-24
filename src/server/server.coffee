@@ -9,19 +9,33 @@ express = require "express"
 
 app = express()
     .use(logger)
-    # .get '/', (req, res)->
-    #     res.sendfile(path.join client, 'index.html')
-
     .use(express.static(client))
 
 http = require('http').Server(app)
 io = require('socket.io')(http)
 
-
-
+players = {}
 
 io.on 'connection', (socket)->
     console.log 'a user connected'
+    socket.emit 'identify'
+    socket.on 'identify', (user)->
+        if players[user]?
+            socket.emit 'userConflict', user
+        else
+            players[user] = socket.id
+            socket.broadcast.emit 'position'
+            console.log players
+    socket.on 'position', (data)->
+        console.log 'position', data
+        socket.broadcast.emit 'socket:updatePlayers', data
+    socket.on 'disconnect', ->
+        # for name, socketId of players
+        #     if socketId is socket.id
+        #         io.emit 'disconnect', name
+        #         delete players[name]
+        console.log 'user disconnected'
+        console.log players
 
 server = null
 

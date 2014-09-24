@@ -2,9 +2,9 @@ sw = angular.module 'swarm-2048'
 
 class SwStageController
     grid = null
-    constructor: (@$scope, @Tiles, @$window, @Utils, $timeout, @$rootScope)->
-        socket = io()
-        tiles = new Tiles(5, 5)
+    constructor: (@$scope, @Tiles, @Utils, @$rootScope, socket)->
+        socket.connect()
+        tiles = new Tiles(40, 40)
         values = [
             [1, 2, 3, 4, 5]
             [6, 7, 8, 9, 10]
@@ -22,11 +22,17 @@ class SwStageController
         tiles.init values
         @$scope.tiles = tiles
 
-        @$scope.keydown = ->
-            console.log arguments
+        @$scope.$on 'socket:position', ->
+            position = [0...tiles.rows].map -> []
+            tiles.data.forEach (tile)->
+                return if tile.reduced
+                position[tile.m][tile.n] = tile.value
+            socket.position position
+
+
         @$scope.$on 'keydown', (e, val)->
             console.log val.keyCode
-            changed =
+            status =
                 switch val.keyCode
                     when 37
                         tiles.combine 'left'
@@ -36,16 +42,15 @@ class SwStageController
                         tiles.combine 'right'
                     when 40
                         tiles.combine 'down'
-            tiles.spawn(1) if changed
+            tiles.spawn(10) if status.changed
             $rootScope.$apply()
 
 
 sw.controller 'swStageCtrl', [
     '$scope'
     'Tiles'
-    '$window'
     'Utils'
-    '$timeout'
     '$rootScope'
+    'socket'
     SwStageController
 ]
