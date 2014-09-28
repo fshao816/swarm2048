@@ -61,7 +61,7 @@ server = null
 
 module.exports =
     start: (callback)->
-        startingPort = 1024
+        startingPort = process.env.PORT || 1024
         require('openport')
         .find {startingPort}, (err, port)->
             process.env.PORT = port
