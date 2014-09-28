@@ -52,16 +52,16 @@
     "karma-sinon-chai": "~0.1.1",
     "karma-spec-reporter": "0.0.6",
     "mocha": "~1.13.0",
-    "q": "~0.9.7",
     "request": "~2.27.0",
     "should": "~2.0.2",
     "supervisor": "^0.6.0",
-    "winston": "^0.7.3"
   },
   "dependencies": {
     "coffee-script": "~1.6.3",
     "express": "~3.4.4",
     "openport": "0.0.3",
-    "socket.io": "^1.1.0"
+    "socket.io": "^1.1.0",
+    "winston": "^0.7.3",
+    "q": "~0.9.7"
   }
 }
