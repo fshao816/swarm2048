@@ -5,7 +5,8 @@
   "main": "./src/deploy/start.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node ./node_modules/.bin/supervisor -w ./src/server -e coffee ./src/deploy/start.js"
+    "start": "node ./src/deploy/start.js",
+    "local": "node ./node_modules/.bin/supervisor -w ./src/server -e coffee ./src/deploy/start.js"
   },
   "repository": {
     "type": "git",
