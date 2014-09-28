@@ -8,6 +8,7 @@ LEVELS = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
 
 tileId = 0
 
+
 class Tile
     constructor: (@m, @n)->
         @id = tileId++
@@ -19,45 +20,69 @@ class Tiles
     maxRows = 0
     maxCols = 0
     criteria = MODE.NORMAL
-    freeSpace = []
-    freeSpace.reset = ->
-        Array::forEach.call freeSpace, (row)->
-            [0...row.length].forEach (i)->
-                row[i] = true
 
-    freeSpace.free = ->
+
+
+    getFree: =>
         result = []
-        Array::forEach.call freeSpace, (row, m)->
+        Array::forEach.call @freeSpace, (row, m)->
             row.forEach (free, n)->
                 result.push {m, n} if free
         result
 
+    resetFreeSpace: =>
+        Array::forEach.call @freeSpace, (row)->
+            [0...row.length].forEach (i)->
+                row[i] = true
+
     constructor: (@rows, @cols)->
-        [0...rows].forEach ->
-            freeSpace.push([0...cols].map -> true)
+
         @data = []
+        @freeSpace = []
+        [0...rows].forEach =>
+            @freeSpace.push([0...cols].map -> true)
+
+        @freeSpace.reset = @resetFreeSpace
+        @freeSpace.free = @getFree
+        @status =
+            changed: false
+            position: [0...@rows].map (d)-> []
+            rows: @rows
+            cols: @cols
+            max: 0
+            high: 0
+
+    updateStatus: (tile)=>
+        return unless tile.value?
+        @status.position[tile.m][tile.n] = tile.value
+        @status.changed = true
+        @status.max = Math.max @status.max, tile.value
+        @status.high = Math.max @status.max, @status.high
+
+    resetStatus: =>
+        @status.position = [0...@rows].map (d)-> []
+        @status.max = 0
+        @status.changed = false
 
     init: (values)->
         return unless values.length > 0
-
-        freeSpace.reset()
+        @freeSpace.reset()
+        @resetStatus()
         values.forEach (row, m)=>
-            return unless (row instanceof Array) and row.length > 0
+            return unless (row instanceof Array)
             row.forEach (value, n)=>
                 return if m >= @rows or n >= @cols
                 if value?
                     tile = new Tile m, n
                     tile.value = value
                     tile.level = @leveler tile.value
+                    @updateStatus tile
                     @data.push tile
-                    freeSpace[m][n] = false
+                    @freeSpace[m][n] = false
 
     update: (values)=>
-        @data.forEach (tile)->
-            return if tile.reduced
-            if values[tile.m]?[tile.n]?
-                tile.value = values[tile.m][tile.n]
-                tile.level = @leveler tile.value
+        @data = []
+        @init values
 
     byRow: (a, b)->
         if a.m < b.m then -1
@@ -90,18 +115,37 @@ class Tiles
             return true
         return false
 
-    spawn: (num = 1)->
-        free = freeSpace.free()
+    remove: (tile)=>
+        if tile instanceof Tile
+            return
+        else
+            index = tile
+            tile = @data[index]
+            @data.splice index, 1
+            @status.changed = true
+            @status.position[tile.m][tile.n] = null
+            @status.max =
+                Math.max.apply null, @data.map (tile)->tile.value
 
+    spawn: (num = 1)->
+        free = @freeSpace.free()
+        tiles = []
         [0...num].forEach =>
             return if free.length is 0
             i = parseInt(Math.random() * free.length)
             {m, n} = free[i]
             free.splice i, 1
+            console.log 'spawn', m, n
             tile = new Tile m, n
             tile.value = 2
+
+            @updateStatus tile
+
             @data.push tile
-            freeSpace[m][n] = false
+            tiles.push tile
+
+            @freeSpace[m][n] = false
+        tiles
 
     cleanReduced: =>
         reduced = @data.filter (d)-> d.reduced
@@ -163,16 +207,13 @@ class Tiles
             nextIndex
         } = cfg
 
-        freeSpace.reset()
+        @freeSpace.reset()
 
         sorted = @data.slice(0).sort sorter
 
         sorted.reverse() if reverse
 
-        status =
-            changed: false
-            position: [0...@rows].map (d)-> []
-        changed = false
+        @resetStatus()
 
         [0...lines].forEach (dimension)=>
             line = sorted.filter (tile)-> tile[lineProperty] is dimension
@@ -180,19 +221,27 @@ class Tiles
             line.forEach (tile, i)=>
                 return if tile.reduced
                 if tile[tileProperty] isnt current
-                    status.changed = true
+                    @status.changed = true
+
                     tile[tileProperty] = current
-                freeSpace[tile.m][tile.n] = false
+
                 next = line[i+1]
                 if next? and criteria(tile.value, next.value)
+                    @status.changed = true
+
                     next.reduced = true
                     next[tileProperty] = current
                     tile.value = tile.value + next.value
                     tile.level = @leveler tile.value
-                    status.position[tile.m][tile.n] = tile.value
+
+                @freeSpace[tile.m][tile.n] = false
+                @status.position[tile.m][tile.n] = tile.value
+                @status.max = Math.max @status.max, tile.value
+                @status.high = Math.max @status.high, @status.max
                 current = nextIndex current
 
-        status
+        # status.high = @high
+        @status
 
 
 

@@ -1,6 +1,14 @@
 sw = angular.module 'swarm-2048'
 
 sw.factory 'auth', ->
-    id = 'user-' + parseInt(Math.random() * 10000000)
+    userId = null
+    id = -> userId
+    login = (user)->
+        userId = user
 
-    {id}
+    # 'user-' + parseInt(Math.random() * 10000000)
+
+    {
+        id
+        login
+    }

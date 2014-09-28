@@ -1,8 +1,19 @@
 .stage
+    sw-login(ng-if="!loggedIn")
     .opponents
-        .opponent(ng-repeat='opponent in opponents')
-            sw-game-board(sw-data="opponent.tiles")
-            .name {{ opponent.name }}
+        .opponents-stage
+            .opponent(ng-repeat='opponent in opponents')
+                sw-game-board(sw-data="opponent.tiles")
+                .name {{ opponent.name }}
     .player
-        sw-game-board#main-board(sw-data="tiles")
+        .status
+            .powerups.section
+            .score.section
+                .label Score
+                .text {{ score }}
+            .rank.section
+                .label Rank
+                .text {{ rank }}
+        .board(ng-if="loggedIn")
+            sw-game-board#main-board(sw-data="tiles")
     .log

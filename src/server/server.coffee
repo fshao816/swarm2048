@@ -17,23 +17,43 @@ io = require('socket.io')(http)
 players = {}
 
 io.on 'connection', (socket)->
-    console.log 'a user connected'
+    console.log 'user connected'
     socket.emit 'identify'
     socket.on 'identify', (user)->
         if players[user]?
             socket.emit 'userConflict', user
         else
-            players[user] = socket.id
-            socket.broadcast.emit 'position'
+            console.log 'Adding user:', user
+            players[user] =
+                id: socket.id
+            io.emit 'status'
             console.log players
-    socket.on 'position', (data)->
-        console.log 'position', data
-        socket.broadcast.emit 'socket:updatePlayers', data
+
+    socket.on 'status', (data)->
+        players[data.id].status = data.status
+        socket.broadcast.emit 'updatePlayers', data
+        ranking =
+            ({name, player} for name, player of players when player.status?)
+        sorted = ranking.sort((a, b)->
+            if a.player.status.max < b.player.status.max
+                1
+            else if a.player.status.max > b.player.status.max
+                -1
+            else
+                0
+        ).map (d)-> d.name
+        io.emit 'ranking', sorted
+
+    socket.on 'powerup', (data)->
+        socketId = players[data.id]?.id
+        if socketId?
+            io.sockets.connected[socketId].emit 'applyPowerup', data.powerup
+
     socket.on 'disconnect', ->
-        # for name, socketId of players
-        #     if socketId is socket.id
-        #         io.emit 'disconnect', name
-        #         delete players[name]
+        for name, player of players
+            if player.id is socket.id
+                io.emit 'disconnect', name
+                delete players[name]
         console.log 'user disconnected'
         console.log players
 

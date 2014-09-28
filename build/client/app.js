@@ -11,10 +11,17 @@
   sw = angular.module('swarm-2048');
 
   sw.factory('auth', function() {
-    var id;
-    id = 'user-' + parseInt(Math.random() * 10000000);
+    var id, login, userId;
+    userId = null;
+    id = function() {
+      return userId;
+    };
+    login = function(user) {
+      return userId = user;
+    };
     return {
-      id: id
+      id: id,
+      login: login
     };
   });
 
@@ -54,7 +61,7 @@
   })();
 
   Tiles = (function() {
-    var criteria, freeSpace, maxCols, maxRows;
+    var criteria, maxCols, maxRows;
 
     maxRows = 0;
 
@@ -62,25 +69,10 @@
 
     criteria = MODE.NORMAL;
 
-    freeSpace = [];
-
-    freeSpace.reset = function() {
-      return Array.prototype.forEach.call(freeSpace, function(row) {
-        var _i, _ref, _results;
-        return (function() {
-          _results = [];
-          for (var _i = 0, _ref = row.length; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--){ _results.push(_i); }
-          return _results;
-        }).apply(this).forEach(function(i) {
-          return row[i] = true;
-        });
-      });
-    };
-
-    freeSpace.free = function() {
+    Tiles.prototype.getFree = function() {
       var result;
       result = [];
-      Array.prototype.forEach.call(freeSpace, function(row, m) {
+      Array.prototype.forEach.call(this.freeSpace, function(row, m) {
         return row.forEach(function(free, n) {
           if (free) {
             return result.push({
@@ -93,21 +85,42 @@
       return result;
     };
 
+    Tiles.prototype.resetFreeSpace = function() {
+      return Array.prototype.forEach.call(this.freeSpace, function(row) {
+        var _i, _ref, _results;
+        return (function() {
+          _results = [];
+          for (var _i = 0, _ref = row.length; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--){ _results.push(_i); }
+          return _results;
+        }).apply(this).forEach(function(i) {
+          return row[i] = true;
+        });
+      });
+    };
+
     function Tiles(rows, cols) {
-      var _i, _results;
+      var _i, _j, _ref, _results, _results1,
+        _this = this;
       this.rows = rows;
       this.cols = cols;
       this.combine = __bind(this.combine, this);
       this.cleanReduced = __bind(this.cleanReduced, this);
+      this.remove = __bind(this.remove, this);
       this.reducible = __bind(this.reducible, this);
       this.update = __bind(this.update, this);
+      this.resetStatus = __bind(this.resetStatus, this);
+      this.updateStatus = __bind(this.updateStatus, this);
+      this.resetFreeSpace = __bind(this.resetFreeSpace, this);
+      this.getFree = __bind(this.getFree, this);
+      this.data = [];
+      this.freeSpace = [];
       (function() {
         _results = [];
         for (var _i = 0; 0 <= rows ? _i < rows : _i > rows; 0 <= rows ? _i++ : _i--){ _results.push(_i); }
         return _results;
       }).apply(this).forEach(function() {
         var _i, _results;
-        return freeSpace.push((function() {
+        return _this.freeSpace.push((function() {
           _results = [];
           for (var _i = 0; 0 <= cols ? _i < cols : _i > cols; 0 <= cols ? _i++ : _i--){ _results.push(_i); }
           return _results;
@@ -115,17 +128,56 @@
           return true;
         }));
       });
-      this.data = [];
+      this.freeSpace.reset = this.resetFreeSpace;
+      this.freeSpace.free = this.getFree;
+      this.status = {
+        changed: false,
+        position: (function() {
+          _results1 = [];
+          for (var _j = 0, _ref = this.rows; 0 <= _ref ? _j < _ref : _j > _ref; 0 <= _ref ? _j++ : _j--){ _results1.push(_j); }
+          return _results1;
+        }).apply(this).map(function(d) {
+          return [];
+        }),
+        rows: this.rows,
+        cols: this.cols,
+        max: 0,
+        high: 0
+      };
     }
+
+    Tiles.prototype.updateStatus = function(tile) {
+      if (tile.value == null) {
+        return;
+      }
+      this.status.position[tile.m][tile.n] = tile.value;
+      this.status.changed = true;
+      this.status.max = Math.max(this.status.max, tile.value);
+      return this.status.high = Math.max(this.status.max, this.status.high);
+    };
+
+    Tiles.prototype.resetStatus = function() {
+      var _i, _ref, _results;
+      this.status.position = (function() {
+        _results = [];
+        for (var _i = 0, _ref = this.rows; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--){ _results.push(_i); }
+        return _results;
+      }).apply(this).map(function(d) {
+        return [];
+      });
+      this.status.max = 0;
+      return this.status.changed = false;
+    };
 
     Tiles.prototype.init = function(values) {
       var _this = this;
       if (!(values.length > 0)) {
         return;
       }
-      freeSpace.reset();
+      this.freeSpace.reset();
+      this.resetStatus();
       return values.forEach(function(row, m) {
-        if (!((row instanceof Array) && row.length > 0)) {
+        if (!(row instanceof Array)) {
           return;
         }
         return row.forEach(function(value, n) {
@@ -137,24 +189,17 @@
             tile = new Tile(m, n);
             tile.value = value;
             tile.level = _this.leveler(tile.value);
+            _this.updateStatus(tile);
             _this.data.push(tile);
-            return freeSpace[m][n] = false;
+            return _this.freeSpace[m][n] = false;
           }
         });
       });
     };
 
     Tiles.prototype.update = function(values) {
-      return this.data.forEach(function(tile) {
-        var _ref;
-        if (tile.reduced) {
-          return;
-        }
-        if (((_ref = values[tile.m]) != null ? _ref[tile.n] : void 0) != null) {
-          tile.value = values[tile.m][tile.n];
-          return tile.level = this.leveler(tile.value);
-        }
-      });
+      this.data = [];
+      return this.init(values);
     };
 
     Tiles.prototype.byRow = function(a, b) {
@@ -213,14 +258,31 @@
       return false;
     };
 
+    Tiles.prototype.remove = function(tile) {
+      var index;
+      if (tile instanceof Tile) {
+
+      } else {
+        index = tile;
+        tile = this.data[index];
+        this.data.splice(index, 1);
+        this.status.changed = true;
+        this.status.position[tile.m][tile.n] = null;
+        return this.status.max = Math.max.apply(null, this.data.map(function(tile) {
+          return tile.value;
+        }));
+      }
+    };
+
     Tiles.prototype.spawn = function(num) {
-      var free, _i, _results,
+      var free, tiles, _i, _results,
         _this = this;
       if (num == null) {
         num = 1;
       }
-      free = freeSpace.free();
-      return (function() {
+      free = this.freeSpace.free();
+      tiles = [];
+      (function() {
         _results = [];
         for (var _i = 0; 0 <= num ? _i < num : _i > num; 0 <= num ? _i++ : _i--){ _results.push(_i); }
         return _results;
@@ -232,11 +294,15 @@
         i = parseInt(Math.random() * free.length);
         _ref = free[i], m = _ref.m, n = _ref.n;
         free.splice(i, 1);
+        console.log('spawn', m, n);
         tile = new Tile(m, n);
         tile.value = 2;
+        _this.updateStatus(tile);
         _this.data.push(tile);
-        return freeSpace[m][n] = false;
+        tiles.push(tile);
+        return _this.freeSpace[m][n] = false;
       });
+      return tiles;
     };
 
     Tiles.prototype.cleanReduced = function() {
@@ -315,29 +381,19 @@
     };
 
     Tiles.prototype.reducer = function(cfg) {
-      var changed, lineProperty, lines, nextIndex, reverse, sorted, sorter, start, status, tileProperty, _i, _j, _ref, _results, _results1,
+      var lineProperty, lines, nextIndex, reverse, sorted, sorter, start, tileProperty, _i, _results,
         _this = this;
       sorter = cfg.sorter, lines = cfg.lines, lineProperty = cfg.lineProperty, tileProperty = cfg.tileProperty, reverse = cfg.reverse, start = cfg.start, nextIndex = cfg.nextIndex;
-      freeSpace.reset();
+      this.freeSpace.reset();
       sorted = this.data.slice(0).sort(sorter);
       if (reverse) {
         sorted.reverse();
       }
-      status = {
-        changed: false,
-        position: (function() {
-          _results = [];
-          for (var _i = 0, _ref = this.rows; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--){ _results.push(_i); }
-          return _results;
-        }).apply(this).map(function(d) {
-          return [];
-        })
-      };
-      changed = false;
+      this.resetStatus();
       (function() {
-        _results1 = [];
-        for (var _j = 0; 0 <= lines ? _j < lines : _j > lines; 0 <= lines ? _j++ : _j--){ _results1.push(_j); }
-        return _results1;
+        _results = [];
+        for (var _i = 0; 0 <= lines ? _i < lines : _i > lines; 0 <= lines ? _i++ : _i--){ _results.push(_i); }
+        return _results;
       }).apply(this).forEach(function(dimension) {
         var current, line;
         line = sorted.filter(function(tile) {
@@ -350,22 +406,25 @@
             return;
           }
           if (tile[tileProperty] !== current) {
-            status.changed = true;
+            _this.status.changed = true;
             tile[tileProperty] = current;
           }
-          freeSpace[tile.m][tile.n] = false;
           next = line[i + 1];
           if ((next != null) && criteria(tile.value, next.value)) {
+            _this.status.changed = true;
             next.reduced = true;
             next[tileProperty] = current;
             tile.value = tile.value + next.value;
             tile.level = _this.leveler(tile.value);
-            status.position[tile.m][tile.n] = tile.value;
           }
+          _this.freeSpace[tile.m][tile.n] = false;
+          _this.status.position[tile.m][tile.n] = tile.value;
+          _this.status.max = Math.max(_this.status.max, tile.value);
+          _this.status.high = Math.max(_this.status.high, _this.status.max);
           return current = nextIndex(current);
         });
       });
-      return status;
+      return this.status;
     };
 
     return Tiles;
@@ -385,8 +444,71 @@
   sw = angular.module('swarm-2048');
 
   sw.factory('opponents', function($rootScope, Tiles) {
+    var add, dict, list, powerup, rank, remove, update;
+    list = [];
+    dict = {};
+    add = function(data) {
+      var cols, opponent, position, rows, tiles;
+      console.log('adding opponent', data);
+      position = data.status.position;
+      rows = data.status.rows || 5;
+      cols = data.status.cols || 5;
+      tiles = new Tiles(rows, cols);
+      tiles.init(position);
+      opponent = {
+        name: data.id,
+        tiles: tiles
+      };
+      list.push(opponent);
+      dict[data.id] = opponent;
+      return console.log('added', list);
+    };
+    rank = function(data) {
+      data.forEach(function(name) {
+        var i, opponent;
+        if (dict[name] == null) {
+          return;
+        }
+        opponent = dict[name];
+        i = list.indexOf(opponent);
+        list.splice(i, 1);
+        return list.push(opponent);
+      });
+      return $rootScope.$apply();
+    };
+    update = function(data) {
+      console.log('updating opponent', data);
+      console.log(dict);
+      if (!(data.id in dict)) {
+        add(data);
+      }
+      dict[data.id].tiles.update(data.status.position);
+      $rootScope.$apply();
+      return console.log(list);
+    };
+    powerup = function(playerIndex, powerupData) {
+      console.log('making powerup for opponent', list[playerIndex].name);
+      return {
+        id: list[playerIndex].name,
+        powerup: powerupData
+      };
+    };
+    remove = function(id) {
+      var opponent;
+      console.log('removing opponent', id);
+      opponent = dict[id];
+      list.splice(list.indexOf(opponent), 1);
+      console.log(list);
+      delete dict[id];
+      return $rootScope.$apply();
+    };
     return {
-      list: list
+      list: list,
+      update: update,
+      remove: remove,
+      add: add,
+      powerup: powerup,
+      rank: rank
     };
   });
 
@@ -397,8 +519,61 @@
 
   sw = angular.module('swarm-2048');
 
-  sw.factory('socket', function($rootScope, auth) {
-    var connect, position, socket;
+  sw.factory('powerup', function() {
+    var apply, create, type;
+    type = {
+      REMOVE_MAX: 'remove_max',
+      BLOCKER: 'blocker'
+    };
+    create = function(kind) {
+      switch (kind) {
+        case type.REMOVE_MAX:
+          return {
+            type: type.REMOVE_MAX
+          };
+        case type.BLOCKER:
+          return {
+            type: type.BLOCKER
+          };
+      }
+    };
+    apply = function(data, tiles) {
+      var i, max, maxes, removeIndex, valid;
+      if (data.type == null) {
+        return;
+      }
+      switch (data.type) {
+        case type.REMOVE_MAX:
+          valid = tiles.data.filter(function(tile) {
+            return !tile.reduced;
+          });
+          max = Math.max.apply(null, valid.map(function(tile) {
+            return tile.value;
+          }));
+          maxes = valid.filter(function(tile) {
+            return tile.value === max;
+          });
+          i = parseInt(Math.random() * maxes.length);
+          removeIndex = tiles.data.indexOf(maxes[i]);
+          return tiles.remove(removeIndex);
+      }
+    };
+    return {
+      apply: apply,
+      type: type,
+      create: create
+    };
+  });
+
+}).call(this);
+
+(function() {
+  var sw;
+
+  sw = angular.module('swarm-2048');
+
+  sw.factory('socket', function($rootScope, auth, opponents) {
+    var connect, identify, powerup, socket, status;
     socket = null;
     connect = function() {
       if (socket == null) {
@@ -407,30 +582,44 @@
           return $rootScope.$broadcast('socket:addPlayers', data);
         });
         socket.on('updatePlayers', function(data) {
-          console.log('socket update players');
+          opponents.update(data);
           return $rootScope.$broadcast('socket:updatePlayers', data);
         });
         socket.on('identify', function() {
-          return socket.emit('identify', auth.id);
+          if (auth.id() != null) {
+            return identify();
+          }
         });
-        socket.on('position', function() {
+        socket.on('status', function() {
           console.log('socket position');
-          return $rootScope.$broadcast('socket:position');
+          return $rootScope.$broadcast('socket:status');
         });
-        return socket.on('disconnect', function(id) {
+        socket.on('disconnect', function(id) {
+          opponents.remove(id);
           return $rootScope.$broadcast('socket:disconnect', id);
+        });
+        return socket.on('applyPowerup', function(data) {
+          return $rootScope.$broadcast('socket:applyPowerup', data);
         });
       }
     };
-    position = function(data) {
-      return socket.emit('position', {
-        id: auth.id,
-        position: data
+    identify = function() {
+      return socket.emit('identify', auth.id());
+    };
+    status = function(data) {
+      return socket.emit('status', {
+        id: auth.id(),
+        status: data
       });
+    };
+    powerup = function(data) {
+      return socket.emit('powerup', data);
     };
     return {
       connect: connect,
-      position: position
+      powerup: powerup,
+      status: status,
+      identify: identify
     };
   });
 
@@ -488,6 +677,20 @@
 }).call(this);
 
 (function() {
+  var sw;
+
+  sw = angular.module('swarm-2048');
+
+  sw.controller('swLoginCtrl', function($scope, auth, socket) {
+    return $scope.submit = function() {
+      auth.login($scope.username);
+      return socket.identify();
+    };
+  });
+
+}).call(this);
+
+(function() {
   var SwStageController, sw;
 
   sw = angular.module('swarm-2048');
@@ -497,38 +700,53 @@
 
     grid = null;
 
-    function SwStageController($scope, Tiles, Utils, $rootScope, socket) {
-      var tiles, values;
+    function SwStageController($scope, Tiles, Utils, $rootScope, socket, opponents, powerup, auth) {
+      var broadcastStatus, tiles, values,
+        _this = this;
       this.$scope = $scope;
       this.Tiles = Tiles;
       this.Utils = Utils;
       this.$rootScope = $rootScope;
       socket.connect();
-      tiles = new Tiles(40, 40);
+      tiles = new Tiles(4, 4);
       values = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15], [16, 17, 18, 19, 20], [21, 22, 23, 24, 25]];
       values = [[4, 4, 4, 4, 4], [4, 2, 2, 2, 4], [4, 2, 2, 2, 4], [4, 2, 2, 2, 4], [4, 4, 4, 4, 4]];
       tiles.init(values);
       this.$scope.tiles = tiles;
-      this.$scope.$on('socket:position', function() {
-        var position, _i, _ref, _results;
-        position = (function() {
-          _results = [];
-          for (var _i = 0, _ref = tiles.rows; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--){ _results.push(_i); }
-          return _results;
-        }).apply(this).map(function() {
-          return [];
-        });
-        tiles.data.forEach(function(tile) {
-          if (tile.reduced) {
-            return;
-          }
-          return position[tile.m][tile.n] = tile.value;
-        });
-        return socket.position(position);
+      this.$scope.opponents = opponents.list;
+      broadcastStatus = function() {
+        console.log('sending status:', tiles.status);
+        return socket.status(tiles.status);
+      };
+      this.$scope.$watch((function() {
+        return auth.id();
+      }), function(val) {
+        if (val != null) {
+          return _this.$scope.loggedIn = true;
+        }
+      });
+      this.$scope.$on('socket:status', broadcastStatus);
+      this.$scope.$on('socket:applyPowerup', function(e, data) {
+        console.log('applying powerup', data);
+        powerup.apply(data, tiles);
+        broadcastStatus();
+        return $rootScope.$apply();
+      });
+      this.$scope.$on('socket:rank', function(e, rank) {
+        return _this.$scope.rank = rank;
       });
       this.$scope.$on('keydown', function(e, val) {
-        var status;
+        var index, keyCode, newTiles, powerupData, status;
         console.log(val.keyCode);
+        keyCode = val.keyCode;
+        if (keyCode > 47 && keyCode < 58) {
+          index = keyCode - 49;
+          if (index < 0) {
+            index = 10;
+          }
+          powerupData = powerup.create(powerup.type.REMOVE_MAX);
+          socket.powerup(opponents.powerup(index, powerupData));
+        }
         status = (function() {
           switch (val.keyCode) {
             case 37:
@@ -541,8 +759,13 @@
               return tiles.combine('down');
           }
         })();
-        if (status.changed) {
-          tiles.spawn(10);
+        if (status != null ? status.changed : void 0) {
+          console.log('status change');
+          newTiles = tiles.spawn(1);
+          newTiles.forEach(function(tile) {
+            return status.position[tile.m][tile.n] = tile.value;
+          });
+          socket.status(status);
         }
         return $rootScope.$apply();
       });
@@ -552,7 +775,7 @@
 
   })();
 
-  sw.controller('swStageCtrl', ['$scope', 'Tiles', 'Utils', '$rootScope', 'socket', SwStageController]);
+  sw.controller('swStageCtrl', ['$scope', 'Tiles', 'Utils', '$rootScope', 'socket', 'opponents', 'powerup', 'auth', SwStageController]);
 
 }).call(this);
 
@@ -594,6 +817,23 @@
       restrict: 'EA',
       templateUrl: 'gameboard',
       controller: 'swGridCtrl'
+    };
+  });
+
+}).call(this);
+
+(function() {
+  var sw;
+
+  sw = angular.module('swarm-2048');
+
+  sw.directive('swLogin', function() {
+    return {
+      scope: {},
+      replace: true,
+      restrict: 'EA',
+      templateUrl: 'login',
+      controller: 'swLoginCtrl'
     };
   });
 

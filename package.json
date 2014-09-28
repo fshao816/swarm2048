@@ -2,7 +2,7 @@
   "name": "swarm2048",
   "version": "0.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "./src/deploy/start.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node ./node_modules/.bin/supervisor -w ./src/server -e coffee ./src/deploy/start.js"
