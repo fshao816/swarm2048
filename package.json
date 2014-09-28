@@ -54,7 +54,7 @@
     "mocha": "~1.13.0",
     "request": "~2.27.0",
     "should": "~2.0.2",
-    "supervisor": "^0.6.0",
+    "supervisor": "^0.6.0"
   },
   "dependencies": {
     "coffee-script": "~1.6.3",
