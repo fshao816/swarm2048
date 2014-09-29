@@ -14,12 +14,16 @@
                 .powerups.section
                 .score.section
                     .label Score
-                    .text {{ score }}
+                    .text
+                        .wrap {{ score }}
                 .rank.section
                     .label Rank
                     .text {{ rank }}
             .board
                 sw-game-board#main-board(sw-data="tiles")
+                .board-status(ng-if="gameover")
+                    .winner(ng-if="winner") WINNER
+                    .loser(ng-if="loser") LOSER
             .identify
                 .text {{ name }}
         .log

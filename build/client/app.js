@@ -142,7 +142,8 @@
         rows: this.rows,
         cols: this.cols,
         max: 0,
-        high: 0
+        high: 0,
+        score: 0
       };
     }
 
@@ -416,6 +417,7 @@
             next[tileProperty] = current;
             tile.value = tile.value + next.value;
             tile.level = _this.leveler(tile.value);
+            _this.status.score = _this.status.score + tile.value;
           }
           _this.freeSpace[tile.m][tile.n] = false;
           _this.status.position[tile.m][tile.n] = tile.value;
@@ -743,6 +745,11 @@
           return _this.$scope.name = auth.id();
         }
       });
+      this.$scope.$watch((function() {
+        return tiles.status.score;
+      }), function(val) {
+        return _this.$scope.score = val;
+      });
       this.$scope.$on('socket:status', broadcastStatus);
       this.$scope.$on('socket:applyPowerup', function(e, data) {
         console.log('applying powerup', data);
@@ -755,7 +762,7 @@
       });
       this.$scope.$on('keydown', function(e, val) {
         var index, keyCode, newTiles, powerupData, status;
-        console.log(val.keyCode);
+        console.log('key', val.keyCode);
         keyCode = val.keyCode;
         if (keyCode > 47 && keyCode < 58) {
           index = keyCode - 49;

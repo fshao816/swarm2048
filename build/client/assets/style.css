@@ -44,7 +44,9 @@ body{font:13px/1.231 Helvetica,arial,sans-serif;height:100%;margin:0;padding:0}
 .stage .player .status{height:10%;}
 .stage .player .status .section{display:inline-block;height:100%;vertical-align:top;border:1px solid #ccc;border-left:none;box-sizing:border-box}
 .stage .player .status .powerups{width:60%;border-left:1px solid #ccc}
-.stage .player .status .score{width:20%}
+.stage .player .status .score{width:20%;text-align:center;}
+.stage .player .status .score .text{font-size:1.6em;vertical-align:center;margin-top:5px;}
+.stage .player .status .score .text .wrap{margin:auto}
 .stage .player .status .rank{width:20%;text-align:center;}
 .stage .player .status .rank .text{font-size:30px}
 .stage .player .board{height:85%}

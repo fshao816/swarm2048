@@ -35,9 +35,9 @@ io.on 'connection', (socket)->
         ranking =
             ({name, player} for name, player of players when player.status?)
         sorted = ranking.sort((a, b)->
-            if a.player.status.max < b.player.status.max
+            if a.player.status.score < b.player.status.score
                 1
-            else if a.player.status.max > b.player.status.max
+            else if a.player.status.score > b.player.status.score
                 -1
             else
                 0

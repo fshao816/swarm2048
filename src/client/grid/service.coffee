@@ -39,6 +39,8 @@ class Tiles
 
         @data = []
         @freeSpace = []
+        @maxTiles = @rows * @cols
+
         [0...rows].forEach =>
             @freeSpace.push([0...cols].map -> true)
 
@@ -51,6 +53,8 @@ class Tiles
             cols: @cols
             max: 0
             high: 0
+            score: 0
+            gameover: false
 
     updateStatus: (tile)=>
         return unless tile.value?
@@ -58,6 +62,7 @@ class Tiles
         @status.changed = true
         @status.max = Math.max @status.max, tile.value
         @status.high = Math.max @status.max, @status.high
+
 
     resetStatus: =>
         @status.position = [0...@rows].map (d)-> []
@@ -155,6 +160,10 @@ class Tiles
 
     combine: (direction)=>
         @cleanReduced()
+        if @data.length is @maxTiles
+            if not reducible()
+                @status.gameover = true
+                return
         # @data = @data.filter (d)-> not d.reduced
         config =
             switch direction
@@ -233,6 +242,7 @@ class Tiles
                     next[tileProperty] = current
                     tile.value = tile.value + next.value
                     tile.level = @leveler tile.value
+                    @status.score = @status.score + tile.value
 
                 @freeSpace[tile.m][tile.n] = false
                 @status.position[tile.m][tile.n] = tile.value

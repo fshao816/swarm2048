@@ -42,6 +42,9 @@ class SwStageController
                 @$scope.loggedIn = true
                 @$scope.name = auth.id()
 
+        @$scope.$watch (-> tiles.status.score), (val)=>
+            @$scope.score = val
+
         @$scope.$on 'socket:status', broadcastStatus
 
 
@@ -55,7 +58,7 @@ class SwStageController
             @$scope.rank = rank
 
         @$scope.$on 'keydown', (e, val)->
-            console.log val.keyCode
+            console.log 'key', val.keyCode
             keyCode = val.keyCode
             if keyCode > 47 and keyCode < 58
                 index = keyCode - 49
