@@ -457,22 +457,24 @@
       tiles.init(position);
       opponent = {
         name: data.id,
-        tiles: tiles
+        tiles: tiles,
+        rank: ''
       };
       list.push(opponent);
       dict[data.id] = opponent;
       return console.log('added', list);
     };
     rank = function(data) {
-      data.forEach(function(name) {
-        var i, opponent;
+      data.forEach(function(name, i) {
+        var j, opponent;
         if (dict[name] == null) {
           return;
         }
         opponent = dict[name];
-        i = list.indexOf(opponent);
-        list.splice(i, 1);
-        return list.push(opponent);
+        j = list.indexOf(opponent);
+        list.splice(j, 1);
+        list.push(opponent);
+        return opponent.rank = i + 1;
       });
       return $rootScope.$apply();
     };
@@ -850,6 +852,24 @@
       restrict: 'EA',
       templateUrl: 'login',
       controller: 'swLoginCtrl'
+    };
+  });
+
+  sw.directive('swFocus', function($timeout) {
+    return {
+      scope: {
+        trigger: '@swFocus'
+      },
+      restrict: 'A',
+      link: function(scope, element) {
+        return scope.$watch('trigger', function(val) {
+          if (val === 'true') {
+            return $timeout(function() {
+              return element[0].focus();
+            });
+          }
+        });
+      }
     };
   });
 

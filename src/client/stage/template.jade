@@ -6,7 +6,9 @@
             .opponents-stage
                 .opponent(ng-repeat='opponent in opponents')
                     sw-game-board(sw-data="opponent.tiles")
-                    .name {{ opponent.name }}
+                    .status
+                        .stat.rank {{ opponent.rank }}
+                        .stat.name {{ opponent.name }}
         .player
             .status
                 .powerups.section

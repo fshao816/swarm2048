@@ -15,17 +15,19 @@ sw.factory 'opponents', ($rootScope, Tiles)->
         opponent =
             name: data.id
             tiles: tiles
+            rank: ''
         list.push opponent
         dict[data.id] = opponent
         console.log 'added', list
 
     rank = (data)->
-        data.forEach (name)->
+        data.forEach (name, i)->
             return unless dict[name]?
             opponent = dict[name]
-            i = list.indexOf opponent
-            list.splice i, 1
+            j = list.indexOf opponent
+            list.splice j, 1
             list.push opponent
+            opponent.rank = i + 1
         $rootScope.$apply()
 
     update = (data)->

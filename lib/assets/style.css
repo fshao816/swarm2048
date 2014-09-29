@@ -28,8 +28,10 @@ body{font:13px/1.231 Helvetica,arial,sans-serif;height:100%;margin:0;padding:0}
 .intro .login .content .username .label,.intro .login .content .username input{display:inline-block}
 .intro .login .content .button{margin:20px;font-size:1em;background-color:#265d00;width:120px;display:inline-block;height:2.2em;line-height:2.2em;border-radius:.3em;color:#fff}
 
-.opponents .opponents-stage .opponent{display:inline-block;height:150px;width:150px;position:relative;}
-.opponents .opponents-stage .opponent .name{display:inline-block}
+.opponents .opponents-stage .opponent{display:inline-block;height:150px;width:150px;position:relative;margin:.5em;}
+.opponents .opponents-stage .opponent .status{margin:5px 0;}
+.opponents .opponents-stage .opponent .status .stat{display:inline-block}
+.opponents .opponents-stage .opponent .status .rank{margin-right:5px;font-weight:bold}
 .opponents .opponents-stage .opponent .grid{position:relative;height:100px;width:100px;}
 .opponents .opponents-stage .opponent .grid .tile ._inner{border-radius:0}
 .opponents .opponents-stage .opponent .grid .tile ._value{font-size:8px}
