@@ -17,11 +17,11 @@ sw.factory 'socket', ($rootScope, auth, opponents)->
             socket.on 'status', ->
                 console.log 'socket position'
                 $rootScope.$broadcast 'socket:status'
-            # socket.on 'ranking', (data)->
-            #     opponents.rank data
-            #     rank = (data.indexOf auth.id()) + 1
-            #     if rank > 0
-            #         $rootScope.$broadcast 'socket:rank', rank
+            socket.on 'ranking', (data)->
+                opponents.rank data
+                rank = (data.indexOf auth.id()) + 1
+                if rank > 0
+                    $rootScope.$broadcast 'socket:rank', rank
             socket.on 'disconnect', (id)->
                 opponents.remove id
                 $rootScope.$broadcast 'socket:disconnect', id

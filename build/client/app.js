@@ -594,6 +594,14 @@
           console.log('socket position');
           return $rootScope.$broadcast('socket:status');
         });
+        socket.on('ranking', function(data) {
+          var rank;
+          opponents.rank(data);
+          rank = (data.indexOf(auth.id())) + 1;
+          if (rank > 0) {
+            return $rootScope.$broadcast('socket:rank', rank);
+          }
+        });
         socket.on('disconnect', function(id) {
           opponents.remove(id);
           return $rootScope.$broadcast('socket:disconnect', id);
@@ -682,6 +690,13 @@
   sw = angular.module('swarm-2048');
 
   sw.controller('swLoginCtrl', function($scope, auth, socket) {
+    var _this = this;
+    $scope.username = '';
+    $scope.$on('keydown', function(e, val) {
+      if (val.keyCode === 13 && $scope.username !== '') {
+        return $scope.submit();
+      }
+    });
     return $scope.submit = function() {
       auth.login($scope.username);
       return socket.identify();
@@ -722,7 +737,8 @@
         return auth.id();
       }), function(val) {
         if (val != null) {
-          return _this.$scope.loggedIn = true;
+          _this.$scope.loggedIn = true;
+          return _this.$scope.name = auth.id();
         }
       });
       this.$scope.$on('socket:status', broadcastStatus);

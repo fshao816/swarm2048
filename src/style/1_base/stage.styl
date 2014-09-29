@@ -1,3 +1,5 @@
+.app
+    height 100%
 .stage
     height 100%
     .opponents
@@ -17,18 +19,28 @@
                 display inline-block
                 height 100%
                 vertical-align top
+                border 1px solid #ccc
+                border-left none
+                box-sizing border-box
             .powerups
                 width 60%
-                background-color red
+                border-left 1px solid #ccc
             .score
                 width 20%
-                background-color blue
             .rank
                 width 20%
-                background-color yellow
+                text-align center
+                .text
+                    font-size 30px
 
         .board
-            height 90%
+            height 85%
+        .identify
+            height 5%
+            .text
+                padding 2%
+                text-align center
+                font-size 2em
 
     .log
         display block

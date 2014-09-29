@@ -32,6 +32,7 @@ class SwStageController
         @$scope.tiles = tiles
         @$scope.opponents = opponents.list
 
+
         broadcastStatus = ->
             console.log 'sending status:', tiles.status
             socket.status tiles.status
@@ -39,6 +40,7 @@ class SwStageController
         @$scope.$watch (-> auth.id()), (val)=>
             if val?
                 @$scope.loggedIn = true
+                @$scope.name = auth.id()
 
         @$scope.$on 'socket:status', broadcastStatus
 
