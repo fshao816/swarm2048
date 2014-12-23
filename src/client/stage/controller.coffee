@@ -57,8 +57,8 @@ class SwStageController
         @$scope.$on 'socket:rank', (e, rank)=>
             @$scope.rank = rank
 
-        @$scope.$on 'keydown', (e, val)->
-            console.log 'key', val.keyCode
+        status = null
+        @$scope.$on 'keydown', (e, val)=>
             keyCode = val.keyCode
             if keyCode > 47 and keyCode < 58
                 index = keyCode - 49
@@ -66,22 +66,26 @@ class SwStageController
                 powerupData = powerup.create powerup.type.REMOVE_MAX
                 socket.powerup opponents.powerup index, powerupData
 
-            status =
-                switch val.keyCode
-                    when 37
-                        tiles.combine 'left'
-                    when 38
-                        tiles.combine 'up'
-                    when 39
-                        tiles.combine 'right'
-                    when 40
-                        tiles.combine 'down'
-            if status?.changed
-                console.log 'status change'
-                newTiles = tiles.spawn(1)
-                newTiles.forEach (tile)->
-                    status.position[tile.m][tile.n] = tile.value
-                socket.status status
+            unless status?.gameover
+                status =
+                    switch val.keyCode
+                        when 37
+                            tiles.combine 'left'
+                        when 38
+                            tiles.combine 'up'
+                        when 39
+                            tiles.combine 'right'
+                        when 40
+                            tiles.combine 'down'
+                if status?.changed
+                    newTiles = tiles.spawn(1)
+                    newTiles.forEach (tile)->
+                        status.position[tile.m][tile.n] = tile.value
+                    socket.status status
+                    if status.gameover
+                        console.log 'gameover!'
+                        @$scope.gameover = true
+                        @$scope.loser = true
             $rootScope.$apply()
 
 

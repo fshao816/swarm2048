@@ -30,7 +30,9 @@ io.on 'connection', (socket)->
             console.log players
 
     socket.on 'status', (data)->
+        console.log data.id
         players[data.id].status = data.status
+        console.log data
         socket.broadcast.emit 'updatePlayers', data
         ranking =
             ({name, player} for name, player of players when player.status?)

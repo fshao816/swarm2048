@@ -3,7 +3,7 @@ sw = angular.module 'swarm-2048'
 sw.factory 'opponents', ($rootScope, Tiles)->
 
     list = []
-    dict = {}
+    map = {}
 
     add = (data)->
         console.log 'adding opponent', data
@@ -16,14 +16,16 @@ sw.factory 'opponents', ($rootScope, Tiles)->
             name: data.id
             tiles: tiles
             rank: ''
+            message: false
+            status: {}
         list.push opponent
-        dict[data.id] = opponent
+        map[data.id] = opponent
         console.log 'added', list
 
     rank = (data)->
         data.forEach (name, i)->
-            return unless dict[name]?
-            opponent = dict[name]
+            return unless map[name]?
+            opponent = map[name]
             j = list.indexOf opponent
             list.splice j, 1
             list.push opponent
@@ -32,10 +34,13 @@ sw.factory 'opponents', ($rootScope, Tiles)->
 
     update = (data)->
         console.log 'updating opponent', data
-        console.log dict
-        add data unless data.id of dict
+        console.log map
+        add data unless data.id of map
 
-        dict[data.id].tiles.update data.status.position
+        opponent = map[data.id]
+        opponent.tiles.update data.status.position
+        opponent.status.gameover = data.status.gameover
+        opponent.message = opponent.status.gameover
 
         $rootScope.$apply()
         console.log list
@@ -47,10 +52,10 @@ sw.factory 'opponents', ($rootScope, Tiles)->
 
     remove = (id)->
         console.log 'removing opponent', id
-        opponent = dict[id]
+        opponent = map[id]
         list.splice (list.indexOf opponent), 1
         console.log list
-        delete dict[id]
+        delete map[id]
         $rootScope.$apply()
 
     {

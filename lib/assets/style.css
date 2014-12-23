@@ -29,10 +29,12 @@ body{font:13px/1.231 Helvetica,arial,sans-serif;height:100%;margin:0;padding:0}
 .intro .login .content .button{margin:20px;font-size:1em;background-color:#265d00;width:120px;display:inline-block;height:2.2em;line-height:2.2em;border-radius:.3em;color:#fff}
 
 .opponents .opponents-stage .opponent{display:inline-block;height:150px;width:150px;position:relative;margin:.5em;}
-.opponents .opponents-stage .opponent .status{margin:5px 0;}
+.opponents .opponents-stage .opponent .overlay{position:absolute;top:0;left:0;height:100%;background:#fff;width:100%;opacity:.7;}
+.opponents .opponents-stage .opponent .overlay .game-over{margin:auto;position:absolute;height:1em;top:0;bottom:0;text-align:center;width:100%}
+.opponents .opponents-stage .opponent .status{margin:5px 0;text-align:center;}
 .opponents .opponents-stage .opponent .status .stat{display:inline-block}
 .opponents .opponents-stage .opponent .status .rank{margin-right:5px;font-weight:bold}
-.opponents .opponents-stage .opponent .grid{position:relative;height:100px;width:100px;}
+.opponents .opponents-stage .opponent .grid{position:relative;margin:auto;height:100px;width:100px;}
 .opponents .opponents-stage .opponent .grid .tile ._inner{border-radius:0}
 .opponents .opponents-stage .opponent .grid .tile ._value{font-size:8px}
 
@@ -49,7 +51,9 @@ body{font:13px/1.231 Helvetica,arial,sans-serif;height:100%;margin:0;padding:0}
 .stage .player .status .score .text .wrap{margin:auto}
 .stage .player .status .rank{width:20%;text-align:center;}
 .stage .player .status .rank .text{font-size:30px}
-.stage .player .board{height:85%}
+.stage .player .board{height:85%;position:relative;}
+.stage .player .board .board-status{position:absolute;top:0;left:0;height:100%;width:100%;background-color:#fff;opacity:.7;text-align:center;}
+.stage .player .board .board-status .loser{height:3em;font-size:3em;font-weight:bold;color:#555;margin:auto;top:0;bottom:0}
 .stage .player .identify{height:5%;}
 .stage .player .identify .text{padding:2%;text-align:center;font-size:2em}
 .stage .log{display:block}

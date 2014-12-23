@@ -113,10 +113,10 @@ class Tiles
 
     reducible: =>
         @data.sort @byRow
-        if @data.some canCombine('m')
+        if @data.some @canCombine('m')
             return true
         @data.sort @byColumn
-        if @data.some canCombine('n')
+        if @data.some @canCombine('n')
             return true
         return false
 
@@ -161,9 +161,11 @@ class Tiles
     combine: (direction)=>
         @cleanReduced()
         if @data.length is @maxTiles
-            if not reducible()
+            if not @reducible()
+                console.log 'gameover!!'
+                @status.changed = true
                 @status.gameover = true
-                return
+                return @status
         # @data = @data.filter (d)-> not d.reduced
         config =
             switch direction

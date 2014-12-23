@@ -114,6 +114,7 @@
       this.getFree = __bind(this.getFree, this);
       this.data = [];
       this.freeSpace = [];
+      this.maxTiles = this.rows * this.cols;
       (function() {
         _results = [];
         for (var _i = 0; 0 <= rows ? _i < rows : _i > rows; 0 <= rows ? _i++ : _i--){ _results.push(_i); }
@@ -143,7 +144,8 @@
         cols: this.cols,
         max: 0,
         high: 0,
-        score: 0
+        score: 0,
+        gameover: false
       };
     }
 
@@ -249,11 +251,11 @@
 
     Tiles.prototype.reducible = function() {
       this.data.sort(this.byRow);
-      if (this.data.some(canCombine('m'))) {
+      if (this.data.some(this.canCombine('m'))) {
         return true;
       }
       this.data.sort(this.byColumn);
-      if (this.data.some(canCombine('n'))) {
+      if (this.data.some(this.canCombine('n'))) {
         return true;
       }
       return false;
@@ -322,6 +324,14 @@
     Tiles.prototype.combine = function(direction) {
       var config;
       this.cleanReduced();
+      if (this.data.length === this.maxTiles) {
+        if (!this.reducible()) {
+          console.log('gameover!!');
+          this.status.changed = true;
+          this.status.gameover = true;
+          return this.status;
+        }
+      }
       config = (function() {
         switch (direction) {
           case 'left':
@@ -446,9 +456,9 @@
   sw = angular.module('swarm-2048');
 
   sw.factory('opponents', function($rootScope, Tiles) {
-    var add, dict, list, powerup, rank, remove, update;
+    var add, list, map, powerup, rank, remove, update;
     list = [];
-    dict = {};
+    map = {};
     add = function(data) {
       var cols, opponent, position, rows, tiles;
       console.log('adding opponent', data);
@@ -460,19 +470,21 @@
       opponent = {
         name: data.id,
         tiles: tiles,
-        rank: ''
+        rank: '',
+        message: false,
+        status: {}
       };
       list.push(opponent);
-      dict[data.id] = opponent;
+      map[data.id] = opponent;
       return console.log('added', list);
     };
     rank = function(data) {
       data.forEach(function(name, i) {
         var j, opponent;
-        if (dict[name] == null) {
+        if (map[name] == null) {
           return;
         }
-        opponent = dict[name];
+        opponent = map[name];
         j = list.indexOf(opponent);
         list.splice(j, 1);
         list.push(opponent);
@@ -481,12 +493,16 @@
       return $rootScope.$apply();
     };
     update = function(data) {
+      var opponent;
       console.log('updating opponent', data);
-      console.log(dict);
-      if (!(data.id in dict)) {
+      console.log(map);
+      if (!(data.id in map)) {
         add(data);
       }
-      dict[data.id].tiles.update(data.status.position);
+      opponent = map[data.id];
+      opponent.tiles.update(data.status.position);
+      opponent.status.gameover = data.status.gameover;
+      opponent.message = opponent.status.gameover;
       $rootScope.$apply();
       return console.log(list);
     };
@@ -500,10 +516,10 @@
     remove = function(id) {
       var opponent;
       console.log('removing opponent', id);
-      opponent = dict[id];
+      opponent = map[id];
       list.splice(list.indexOf(opponent), 1);
       console.log(list);
-      delete dict[id];
+      delete map[id];
       return $rootScope.$apply();
     };
     return {
@@ -720,7 +736,7 @@
     grid = null;
 
     function SwStageController($scope, Tiles, Utils, $rootScope, socket, opponents, powerup, auth) {
-      var broadcastStatus, tiles, values,
+      var broadcastStatus, status, tiles, values,
         _this = this;
       this.$scope = $scope;
       this.Tiles = Tiles;
@@ -760,9 +776,9 @@
       this.$scope.$on('socket:rank', function(e, rank) {
         return _this.$scope.rank = rank;
       });
+      status = null;
       this.$scope.$on('keydown', function(e, val) {
-        var index, keyCode, newTiles, powerupData, status;
-        console.log('key', val.keyCode);
+        var index, keyCode, newTiles, powerupData;
         keyCode = val.keyCode;
         if (keyCode > 47 && keyCode < 58) {
           index = keyCode - 49;
@@ -772,25 +788,31 @@
           powerupData = powerup.create(powerup.type.REMOVE_MAX);
           socket.powerup(opponents.powerup(index, powerupData));
         }
-        status = (function() {
-          switch (val.keyCode) {
-            case 37:
-              return tiles.combine('left');
-            case 38:
-              return tiles.combine('up');
-            case 39:
-              return tiles.combine('right');
-            case 40:
-              return tiles.combine('down');
+        if (!(status != null ? status.gameover : void 0)) {
+          status = (function() {
+            switch (val.keyCode) {
+              case 37:
+                return tiles.combine('left');
+              case 38:
+                return tiles.combine('up');
+              case 39:
+                return tiles.combine('right');
+              case 40:
+                return tiles.combine('down');
+            }
+          })();
+          if (status != null ? status.changed : void 0) {
+            newTiles = tiles.spawn(1);
+            newTiles.forEach(function(tile) {
+              return status.position[tile.m][tile.n] = tile.value;
+            });
+            socket.status(status);
+            if (status.gameover) {
+              console.log('gameover!');
+              _this.$scope.gameover = true;
+              _this.$scope.loser = true;
+            }
           }
-        })();
-        if (status != null ? status.changed : void 0) {
-          console.log('status change');
-          newTiles = tiles.spawn(1);
-          newTiles.forEach(function(tile) {
-            return status.position[tile.m][tile.n] = tile.value;
-          });
-          socket.status(status);
         }
         return $rootScope.$apply();
       });

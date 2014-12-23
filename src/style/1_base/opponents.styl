@@ -6,8 +6,25 @@
             width 150px
             position relative
             margin 0.5em
+            .overlay
+                position absolute
+                top 0
+                left 0
+                height 100%
+                background white
+                width 100%
+                opacity 0.7
+                .game-over
+                    margin auto
+                    position absolute
+                    height 1em
+                    top 0
+                    bottom 0
+                    text-align center
+                    width 100%
             .status
                 margin 5px 0
+                text-align center
                 .stat
                     display inline-block
                 .rank
@@ -15,6 +32,7 @@
                     font-weight bold
             .grid
                 position relative
+                margin auto
                 height 100px
                 width 100px
                 .tile

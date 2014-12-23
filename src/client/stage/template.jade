@@ -9,6 +9,9 @@
                     .status
                         .stat.rank {{ opponent.rank }}
                         .stat.name {{ opponent.name }}
+                    .overlay(ng-if="opponent.message")
+                        .game-over(ng-if="opponent.status.gameover")
+                            span GAME OVER
         .player
             .status
                 .powerups.section
