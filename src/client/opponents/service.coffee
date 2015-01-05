@@ -32,6 +32,10 @@ sw.factory 'opponents', ($rootScope, Tiles)->
             opponent.rank = i + 1
         $rootScope.$apply()
 
+    statusKeys = [
+        'gameover'
+        'ready'
+    ]
     update = (data)->
         console.log 'updating opponent', data
         console.log map
@@ -39,7 +43,9 @@ sw.factory 'opponents', ($rootScope, Tiles)->
 
         opponent = map[data.id]
         opponent.tiles.update data.status.position
-        opponent.status.gameover = data.status.gameover
+        statusKeys.forEach (d)->
+            opponent.status[d] = data.status[d]
+
         opponent.message = opponent.status.gameover
 
         $rootScope.$apply()

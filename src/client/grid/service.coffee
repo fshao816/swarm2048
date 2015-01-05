@@ -55,6 +55,7 @@ class Tiles
             high: 0
             score: 0
             gameover: false
+            ready: false
 
     updateStatus: (tile)=>
         return unless tile.value?

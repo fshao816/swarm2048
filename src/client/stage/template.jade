@@ -1,7 +1,20 @@
 .app
-    .intro(ng-if="!loggedIn")
+    .intro(ng-show="state.login")
         sw-login
-    .stage(ng-if="loggedIn")
+    .wait(ng-show="state.waitForPlayers")
+        .user
+            .name
+                .text {{ name }}
+            .ready
+                input(type='checkbox', ng-model='wait.ready')
+        .opponents
+            .opponent-status(ng-repeat='opponent in opponents')
+                .name {{ opponent.name }}
+                .status
+                    .ready(ng-if='opponent.status.ready')
+                    .not-ready(ng-if='!opponent.status.ready')
+
+    .stage(ng-if="state.gameplay")
         .opponents
             .opponents-stage
                 .opponent(ng-repeat='opponent in opponents')
@@ -11,7 +24,7 @@
                         .stat.name {{ opponent.name }}
                     .overlay(ng-if="opponent.message")
                         .game-over(ng-if="opponent.status.gameover")
-                            span GAME OVER
+                            span LOSER
         .player
             .status
                 .powerups.section

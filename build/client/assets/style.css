@@ -53,7 +53,7 @@ body{font:13px/1.231 Helvetica,arial,sans-serif;height:100%;margin:0;padding:0}
 .stage .player .status .rank .text{font-size:30px}
 .stage .player .board{height:85%;position:relative;}
 .stage .player .board .board-status{position:absolute;top:0;left:0;height:100%;width:100%;background-color:#fff;opacity:.7;text-align:center;}
-.stage .player .board .board-status .loser{height:3em;font-size:3em;font-weight:bold;color:#555;margin:auto;top:0;bottom:0}
+.stage .player .board .board-status .loser{height:3em;font-size:3em;font-weight:bold;color:#555;margin:auto;top:0;bottom:0;position:absolute;width:100%}
 .stage .player .identify{height:5%;}
 .stage .player .identify .text{padding:2%;text-align:center;font-size:2em}
 .stage .log{display:block}
@@ -62,3 +62,11 @@ body{font:13px/1.231 Helvetica,arial,sans-serif;height:100%;margin:0;padding:0}
 .tile ._inner{-webkit-transition:opacity linear 70ms;transition:opacity linear 70ms;display:block;position:relative;height:96%;width:96%;left:3%;top:2%;border-radius:.7em;text-align:center;}
 .tile ._inner ._value{font-size:22px;vertical-align:middle;display:inline-block;position:absolute;margin:auto;right:0;left:0;bottom:0;top:0;height:13px}
 .tile ._inner.-reduced{opacity:0}
+
+.wait{width:100%;padding:1em;box-sizing:border-box;}
+.wait .user .name{display:inline-block}
+.wait .user .ready{display:inline-block}
+.wait .opponents .opponent-status{width:100%;height:3em;border:1px solid #000;box-sizing:border-box;}
+.wait .opponents .opponent-status .name{display:inline-block}
+.wait .opponents .opponent-status .status{display:inline-block;}
+.wait .opponents .opponent-status .status .not-ready{height:20px;width:20px;background-color:#f00}

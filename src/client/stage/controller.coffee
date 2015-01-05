@@ -10,9 +10,12 @@ class SwStageController
         socket,
         opponents,
         powerup,
-        auth
+        auth,
+        GameState
     )->
         socket.connect()
+        GameState.set GameState.STATE.LOGIN
+
         tiles = new Tiles(4, 4)
         values = [
             [1, 2, 3, 4, 5]
@@ -31,19 +34,25 @@ class SwStageController
         tiles.init values
         @$scope.tiles = tiles
         @$scope.opponents = opponents.list
-
+        @$scope.state = GameState.state
+        @$scope.wait =
+            ready: false
 
         broadcastStatus = ->
             console.log 'sending status:', tiles.status
-            socket.status tiles.status
+            unless GameState.get() is GameState.STATE.LOGIN
+                socket.status tiles.status
 
         @$scope.$watch (-> auth.id()), (val)=>
             if val?
-                @$scope.loggedIn = true
+                GameState.set GameState.STATE.WAITFORPLAYERS
                 @$scope.name = auth.id()
 
         @$scope.$watch (-> tiles.status.score), (val)=>
             @$scope.score = val
+
+        @$scope.$watch 'wait.ready', (val)->
+            console.log 'ready', val
 
         @$scope.$on 'socket:status', broadcastStatus
 
@@ -98,5 +107,6 @@ sw.controller 'swStageCtrl', [
     'opponents'
     'powerup'
     'auth'
+    'GameState'
     SwStageController
 ]

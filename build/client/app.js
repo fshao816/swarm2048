@@ -145,7 +145,8 @@
         max: 0,
         high: 0,
         score: 0,
-        gameover: false
+        gameover: false,
+        ready: false
       };
     }
 
@@ -456,7 +457,7 @@
   sw = angular.module('swarm-2048');
 
   sw.factory('opponents', function($rootScope, Tiles) {
-    var add, list, map, powerup, rank, remove, update;
+    var add, list, map, powerup, rank, remove, statusKeys, update;
     list = [];
     map = {};
     add = function(data) {
@@ -492,6 +493,7 @@
       });
       return $rootScope.$apply();
     };
+    statusKeys = ['gameover', 'ready'];
     update = function(data) {
       var opponent;
       console.log('updating opponent', data);
@@ -501,7 +503,9 @@
       }
       opponent = map[data.id];
       opponent.tiles.update(data.status.position);
-      opponent.status.gameover = data.status.gameover;
+      statusKeys.forEach(function(d) {
+        return opponent.status[d] = data.status[d];
+      });
       opponent.message = opponent.status.gameover;
       $rootScope.$apply();
       return console.log(list);
@@ -582,6 +586,50 @@
       apply: apply,
       type: type,
       create: create
+    };
+  });
+
+}).call(this);
+
+(function() {
+  var STATE, sw;
+
+  sw = angular.module('swarm-2048');
+
+  STATE = {
+    LOGIN: 'login',
+    WAITFORPLAYERS: 'waitForPlayers',
+    GAMEPLAY: 'gameplay'
+  };
+
+  sw.factory('GameState', function($rootScope) {
+    var get, set, state;
+    state = {
+      login: false,
+      waitForPlayers: false,
+      gameplay: false
+    };
+    set = function(val) {
+      var key;
+      for (key in state) {
+        state[key] = false;
+      }
+      return state[val] = true;
+    };
+    get = function() {
+      var key, val;
+      for (key in state) {
+        val = state[key];
+        if (val) {
+          return key;
+        }
+      }
+    };
+    return {
+      state: state,
+      STATE: STATE,
+      set: set,
+      get: get
     };
   });
 
@@ -735,7 +783,7 @@
 
     grid = null;
 
-    function SwStageController($scope, Tiles, Utils, $rootScope, socket, opponents, powerup, auth) {
+    function SwStageController($scope, Tiles, Utils, $rootScope, socket, opponents, powerup, auth, GameState) {
       var broadcastStatus, status, tiles, values,
         _this = this;
       this.$scope = $scope;
@@ -743,21 +791,28 @@
       this.Utils = Utils;
       this.$rootScope = $rootScope;
       socket.connect();
+      GameState.set(GameState.STATE.LOGIN);
       tiles = new Tiles(4, 4);
       values = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15], [16, 17, 18, 19, 20], [21, 22, 23, 24, 25]];
       values = [[4, 4, 4, 4, 4], [4, 2, 2, 2, 4], [4, 2, 2, 2, 4], [4, 2, 2, 2, 4], [4, 4, 4, 4, 4]];
       tiles.init(values);
       this.$scope.tiles = tiles;
       this.$scope.opponents = opponents.list;
+      this.$scope.state = GameState.state;
+      this.$scope.wait = {
+        ready: false
+      };
       broadcastStatus = function() {
         console.log('sending status:', tiles.status);
-        return socket.status(tiles.status);
+        if (GameState.get() !== GameState.STATE.LOGIN) {
+          return socket.status(tiles.status);
+        }
       };
       this.$scope.$watch((function() {
         return auth.id();
       }), function(val) {
         if (val != null) {
-          _this.$scope.loggedIn = true;
+          GameState.set(GameState.STATE.WAITFORPLAYERS);
           return _this.$scope.name = auth.id();
         }
       });
@@ -765,6 +820,9 @@
         return tiles.status.score;
       }), function(val) {
         return _this.$scope.score = val;
+      });
+      this.$scope.$watch('wait.ready', function(val) {
+        return console.log('ready', val);
       });
       this.$scope.$on('socket:status', broadcastStatus);
       this.$scope.$on('socket:applyPowerup', function(e, data) {
@@ -822,7 +880,7 @@
 
   })();
 
-  sw.controller('swStageCtrl', ['$scope', 'Tiles', 'Utils', '$rootScope', 'socket', 'opponents', 'powerup', 'auth', SwStageController]);
+  sw.controller('swStageCtrl', ['$scope', 'Tiles', 'Utils', '$rootScope', 'socket', 'opponents', 'powerup', 'auth', 'GameState', SwStageController]);
 
 }).call(this);
 
