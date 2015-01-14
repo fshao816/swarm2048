@@ -35,7 +35,7 @@ class Tiles
             [0...row.length].forEach (i)->
                 row[i] = true
 
-    constructor: (@rows, @cols)->
+    constructor: (@rows, @cols, @status)->
 
         @data = []
         @freeSpace = []
@@ -46,34 +46,12 @@ class Tiles
 
         @freeSpace.reset = @resetFreeSpace
         @freeSpace.free = @getFree
-        @status =
-            changed: false
-            position: [0...@rows].map (d)-> []
-            rows: @rows
-            cols: @cols
-            max: 0
-            high: 0
-            score: 0
-            gameover: false
-            ready: false
-
-    updateStatus: (tile)=>
-        return unless tile.value?
-        @status.position[tile.m][tile.n] = tile.value
-        @status.changed = true
-        @status.max = Math.max @status.max, tile.value
-        @status.high = Math.max @status.max, @status.high
-
-
-    resetStatus: =>
-        @status.position = [0...@rows].map (d)-> []
-        @status.max = 0
-        @status.changed = false
 
     init: (values)->
         return unless values.length > 0
         @freeSpace.reset()
-        @resetStatus()
+        @status.reset() if @status?
+
         values.forEach (row, m)=>
             return unless (row instanceof Array)
             row.forEach (value, n)=>
@@ -82,9 +60,10 @@ class Tiles
                     tile = new Tile m, n
                     tile.value = value
                     tile.level = @leveler tile.value
-                    @updateStatus tile
                     @data.push tile
                     @freeSpace[m][n] = false
+
+                    @status.update tile if @status
 
     update: (values)=>
         @data = []
@@ -128,9 +107,9 @@ class Tiles
             index = tile
             tile = @data[index]
             @data.splice index, 1
-            @status.changed = true
-            @status.position[tile.m][tile.n] = null
-            @status.max =
+            @status?.changed = true
+            @status?.position[tile.m][tile.n] = null
+            @status?.max =
                 Math.max.apply null, @data.map (tile)->tile.value
 
     spawn: (num = 1)->
@@ -145,7 +124,7 @@ class Tiles
             tile = new Tile m, n
             tile.value = 2
 
-            @updateStatus tile
+            @status.update tile if @status?
 
             @data.push tile
             tiles.push tile
@@ -164,41 +143,41 @@ class Tiles
         if @data.length is @maxTiles
             if not @reducible()
                 console.log 'gameover!!'
-                @status.changed = true
-                @status.gameover = true
-                return @status
-        # @data = @data.filter (d)-> not d.reduced
+                if @status?
+                    @status.changed = true
+                    @status.gameover = true
+                return
         config =
             switch direction
                 when 'left'
                     sorter: @byRow
-                    lines: @rows
-                    lineProperty: 'm'
-                    tileProperty: 'n'
+                    lineCount: @rows
+                    lineKey: 'm'
+                    tileKey: 'n'
                     reverse: false
                     start: 0
                     nextIndex: (val)-> val + 1
                 when 'right'
                     sorter: @byRow
-                    lines: @rows
-                    lineProperty: 'm'
-                    tileProperty: 'n'
+                    lineCount: @rows
+                    lineKey: 'm'
+                    tileKey: 'n'
                     reverse: true
                     start: @rows - 1
                     nextIndex: (val)-> val - 1
                 when 'up'
                     sorter: @byColumn
-                    lines: @cols
-                    lineProperty: 'n'
-                    tileProperty: 'm'
+                    lineCount: @cols
+                    lineKey: 'n'
+                    tileKey: 'm'
                     reverse: false
                     start: 0
                     nextIndex: (val)-> val + 1
                 when 'down'
                     sorter: @byColumn
-                    lines: @cols
-                    lineProperty: 'n'
-                    tileProperty: 'm'
+                    lineCount: @cols
+                    lineKey: 'n'
+                    tileKey: 'm'
                     reverse: true
                     start: @cols - 1
                     nextIndex: (val)-> val - 1
@@ -207,13 +186,12 @@ class Tiles
     leveler: (val)->
         Math.max LEVELS.indexOf(val), 0
 
-
     reducer: (cfg)->
         {
             sorter
-            lines
-            lineProperty
-            tileProperty
+            lineCount
+            lineKey
+            tileKey
             reverse
             start
             nextIndex
@@ -225,37 +203,43 @@ class Tiles
 
         sorted.reverse() if reverse
 
-        @resetStatus()
+        @status.reset() if @status?
 
-        [0...lines].forEach (dimension)=>
-            line = sorted.filter (tile)-> tile[lineProperty] is dimension
-            current = start
+        [0...lineCount].forEach (dimension)=>
+
+            # Collect the tiles in the current line
+            line = sorted.filter (tile)-> tile[lineKey] is dimension
+
+            # Current position of tile in consideration
+            lineCursor = start
+
             line.forEach (tile, i)=>
+
+                # Skip this tile if already reduced
                 return if tile.reduced
-                if tile[tileProperty] isnt current
-                    @status.changed = true
 
-                    tile[tileProperty] = current
+                # Set this tile to have current lineCursor index
+                if tile[tileKey] isnt lineCursor
+                    tile[tileKey] = lineCursor
 
+                ###
+                Look ahead to next tile and see if it should
+                be merged into the current one. If it IS eligible to be
+                merged, than reduced=true and will be skipped when
+                iterator reaches that tile
+                ###
                 next = line[i+1]
                 if next? and criteria(tile.value, next.value)
-                    @status.changed = true
-
                     next.reduced = true
-                    next[tileProperty] = current
+                    next[tileKey] = lineCursor
                     tile.value = tile.value + next.value
                     tile.level = @leveler tile.value
-                    @status.score = @status.score + tile.value
+                    if @status?
+                        @status.score = @status.score + tile.value
 
                 @freeSpace[tile.m][tile.n] = false
-                @status.position[tile.m][tile.n] = tile.value
-                @status.max = Math.max @status.max, tile.value
-                @status.high = Math.max @status.high, @status.max
-                current = nextIndex current
-
-        # status.high = @high
-        @status
-
+                @status.update tile if @status?
+                lineCursor = nextIndex lineCursor
 
 
 # Contains main arithmetic logic

@@ -8,4 +8,3 @@ sw.controller 'swLoginCtrl', ($scope, auth, socket)->
 
     $scope.submit = ->
         auth.login $scope.username
-        socket.identify()

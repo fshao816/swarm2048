@@ -4,14 +4,21 @@ sw.factory 'socket', ($rootScope, auth, opponents)->
 
     socket = null
 
-    connect = ->
+    connect = (group='testing')->
         unless socket?
+            console.log 'connecting socket'
             socket = io()
+            if group?
+                socket.emit 'joinGroup', group
             socket.on 'addPlayers', (data)->
                 $rootScope.$broadcast 'socket:addPlayers', data
             socket.on 'updatePlayers', (data)->
+                console.log 'UPDATE PLAYERS'
                 opponents.update data
                 $rootScope.$broadcast 'socket:updatePlayers', data
+            socket.on 'allReady', (data)->
+                console.log 'ALL READY'
+                $rootScope.$broadcast 'socket:allReady'
             socket.on 'identify', ->
                 identify() if auth.id()?
             socket.on 'status', ->

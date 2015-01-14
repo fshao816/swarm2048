@@ -17,6 +17,7 @@
       return userId;
     };
     login = function(user) {
+      console.log('login', user);
       return userId = user;
     };
     return {
@@ -98,18 +99,17 @@
       });
     };
 
-    function Tiles(rows, cols) {
-      var _i, _j, _ref, _results, _results1,
+    function Tiles(rows, cols, status) {
+      var _i, _results,
         _this = this;
       this.rows = rows;
       this.cols = cols;
+      this.status = status;
       this.combine = __bind(this.combine, this);
       this.cleanReduced = __bind(this.cleanReduced, this);
       this.remove = __bind(this.remove, this);
       this.reducible = __bind(this.reducible, this);
       this.update = __bind(this.update, this);
-      this.resetStatus = __bind(this.resetStatus, this);
-      this.updateStatus = __bind(this.updateStatus, this);
       this.resetFreeSpace = __bind(this.resetFreeSpace, this);
       this.getFree = __bind(this.getFree, this);
       this.data = [];
@@ -131,47 +131,7 @@
       });
       this.freeSpace.reset = this.resetFreeSpace;
       this.freeSpace.free = this.getFree;
-      this.status = {
-        changed: false,
-        position: (function() {
-          _results1 = [];
-          for (var _j = 0, _ref = this.rows; 0 <= _ref ? _j < _ref : _j > _ref; 0 <= _ref ? _j++ : _j--){ _results1.push(_j); }
-          return _results1;
-        }).apply(this).map(function(d) {
-          return [];
-        }),
-        rows: this.rows,
-        cols: this.cols,
-        max: 0,
-        high: 0,
-        score: 0,
-        gameover: false,
-        ready: false
-      };
     }
-
-    Tiles.prototype.updateStatus = function(tile) {
-      if (tile.value == null) {
-        return;
-      }
-      this.status.position[tile.m][tile.n] = tile.value;
-      this.status.changed = true;
-      this.status.max = Math.max(this.status.max, tile.value);
-      return this.status.high = Math.max(this.status.max, this.status.high);
-    };
-
-    Tiles.prototype.resetStatus = function() {
-      var _i, _ref, _results;
-      this.status.position = (function() {
-        _results = [];
-        for (var _i = 0, _ref = this.rows; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--){ _results.push(_i); }
-        return _results;
-      }).apply(this).map(function(d) {
-        return [];
-      });
-      this.status.max = 0;
-      return this.status.changed = false;
-    };
 
     Tiles.prototype.init = function(values) {
       var _this = this;
@@ -179,7 +139,9 @@
         return;
       }
       this.freeSpace.reset();
-      this.resetStatus();
+      if (this.status != null) {
+        this.status.reset();
+      }
       return values.forEach(function(row, m) {
         if (!(row instanceof Array)) {
           return;
@@ -193,9 +155,11 @@
             tile = new Tile(m, n);
             tile.value = value;
             tile.level = _this.leveler(tile.value);
-            _this.updateStatus(tile);
             _this.data.push(tile);
-            return _this.freeSpace[m][n] = false;
+            _this.freeSpace[m][n] = false;
+            if (_this.status) {
+              return _this.status.update(tile);
+            }
           }
         });
       });
@@ -263,18 +227,22 @@
     };
 
     Tiles.prototype.remove = function(tile) {
-      var index;
+      var index, _ref, _ref1, _ref2;
       if (tile instanceof Tile) {
 
       } else {
         index = tile;
         tile = this.data[index];
         this.data.splice(index, 1);
-        this.status.changed = true;
-        this.status.position[tile.m][tile.n] = null;
-        return this.status.max = Math.max.apply(null, this.data.map(function(tile) {
+        if ((_ref = this.status) != null) {
+          _ref.changed = true;
+        }
+        if ((_ref1 = this.status) != null) {
+          _ref1.position[tile.m][tile.n] = null;
+        }
+        return (_ref2 = this.status) != null ? _ref2.max = Math.max.apply(null, this.data.map(function(tile) {
           return tile.value;
-        }));
+        })) : void 0;
       }
     };
 
@@ -301,7 +269,9 @@
         console.log('spawn', m, n);
         tile = new Tile(m, n);
         tile.value = 2;
-        _this.updateStatus(tile);
+        if (_this.status != null) {
+          _this.status.update(tile);
+        }
         _this.data.push(tile);
         tiles.push(tile);
         return _this.freeSpace[m][n] = false;
@@ -328,9 +298,11 @@
       if (this.data.length === this.maxTiles) {
         if (!this.reducible()) {
           console.log('gameover!!');
-          this.status.changed = true;
-          this.status.gameover = true;
-          return this.status;
+          if (this.status != null) {
+            this.status.changed = true;
+            this.status.gameover = true;
+          }
+          return;
         }
       }
       config = (function() {
@@ -338,9 +310,9 @@
           case 'left':
             return {
               sorter: this.byRow,
-              lines: this.rows,
-              lineProperty: 'm',
-              tileProperty: 'n',
+              lineCount: this.rows,
+              lineKey: 'm',
+              tileKey: 'n',
               reverse: false,
               start: 0,
               nextIndex: function(val) {
@@ -350,9 +322,9 @@
           case 'right':
             return {
               sorter: this.byRow,
-              lines: this.rows,
-              lineProperty: 'm',
-              tileProperty: 'n',
+              lineCount: this.rows,
+              lineKey: 'm',
+              tileKey: 'n',
               reverse: true,
               start: this.rows - 1,
               nextIndex: function(val) {
@@ -362,9 +334,9 @@
           case 'up':
             return {
               sorter: this.byColumn,
-              lines: this.cols,
-              lineProperty: 'n',
-              tileProperty: 'm',
+              lineCount: this.cols,
+              lineKey: 'n',
+              tileKey: 'm',
               reverse: false,
               start: 0,
               nextIndex: function(val) {
@@ -374,9 +346,9 @@
           case 'down':
             return {
               sorter: this.byColumn,
-              lines: this.cols,
-              lineProperty: 'n',
-              tileProperty: 'm',
+              lineCount: this.cols,
+              lineKey: 'n',
+              tileKey: 'm',
               reverse: true,
               start: this.cols - 1,
               nextIndex: function(val) {
@@ -393,51 +365,59 @@
     };
 
     Tiles.prototype.reducer = function(cfg) {
-      var lineProperty, lines, nextIndex, reverse, sorted, sorter, start, tileProperty, _i, _results,
+      var lineCount, lineKey, nextIndex, reverse, sorted, sorter, start, tileKey, _i, _results,
         _this = this;
-      sorter = cfg.sorter, lines = cfg.lines, lineProperty = cfg.lineProperty, tileProperty = cfg.tileProperty, reverse = cfg.reverse, start = cfg.start, nextIndex = cfg.nextIndex;
+      sorter = cfg.sorter, lineCount = cfg.lineCount, lineKey = cfg.lineKey, tileKey = cfg.tileKey, reverse = cfg.reverse, start = cfg.start, nextIndex = cfg.nextIndex;
       this.freeSpace.reset();
       sorted = this.data.slice(0).sort(sorter);
       if (reverse) {
         sorted.reverse();
       }
-      this.resetStatus();
-      (function() {
+      if (this.status != null) {
+        this.status.reset();
+      }
+      return (function() {
         _results = [];
-        for (var _i = 0; 0 <= lines ? _i < lines : _i > lines; 0 <= lines ? _i++ : _i--){ _results.push(_i); }
+        for (var _i = 0; 0 <= lineCount ? _i < lineCount : _i > lineCount; 0 <= lineCount ? _i++ : _i--){ _results.push(_i); }
         return _results;
       }).apply(this).forEach(function(dimension) {
-        var current, line;
+        var line, lineCursor;
         line = sorted.filter(function(tile) {
-          return tile[lineProperty] === dimension;
+          return tile[lineKey] === dimension;
         });
-        current = start;
+        lineCursor = start;
         return line.forEach(function(tile, i) {
           var next;
           if (tile.reduced) {
             return;
           }
-          if (tile[tileProperty] !== current) {
-            _this.status.changed = true;
-            tile[tileProperty] = current;
+          if (tile[tileKey] !== lineCursor) {
+            tile[tileKey] = lineCursor;
           }
+          /*
+          Look ahead to next tile and see if it should
+          be merged into the current one. If it IS eligible to be
+          merged, than reduced=true and will be skipped when
+          iterator reaches that tile
+          */
+
           next = line[i + 1];
           if ((next != null) && criteria(tile.value, next.value)) {
-            _this.status.changed = true;
             next.reduced = true;
-            next[tileProperty] = current;
+            next[tileKey] = lineCursor;
             tile.value = tile.value + next.value;
             tile.level = _this.leveler(tile.value);
-            _this.status.score = _this.status.score + tile.value;
+            if (_this.status != null) {
+              _this.status.score = _this.status.score + tile.value;
+            }
           }
           _this.freeSpace[tile.m][tile.n] = false;
-          _this.status.position[tile.m][tile.n] = tile.value;
-          _this.status.max = Math.max(_this.status.max, tile.value);
-          _this.status.high = Math.max(_this.status.high, _this.status.max);
-          return current = nextIndex(current);
+          if (_this.status != null) {
+            _this.status.update(tile);
+          }
+          return lineCursor = nextIndex(lineCursor);
         });
       });
-      return this.status;
     };
 
     return Tiles;
@@ -636,6 +616,119 @@
 }).call(this);
 
 (function() {
+  var Status, property, readonly, sw,
+    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+  sw = angular.module('swarm-2048');
+
+  property = {
+    changed: false,
+    position: null,
+    rows: null,
+    cols: null,
+    max: 0,
+    high: 0,
+    score: 0,
+    gameover: false,
+    ready: false
+  };
+
+  readonly = [];
+
+  Status = (function() {
+    function Status($rootScope, GameState, socket) {
+      var key, _fn,
+        _this = this;
+      this.$rootScope = $rootScope;
+      this.GameState = GameState;
+      this.socket = socket;
+      this.broadcast = __bind(this.broadcast, this);
+      this.reset = __bind(this.reset, this);
+      this.update = __bind(this.update, this);
+      this.status = __bind(this.status, this);
+      $rootScope.$on('status:set', function(e, options) {
+        return console.log(options);
+      });
+      $rootScope.$on('socket:status', this.broadcast);
+      _fn = function(key) {
+        if (__indexOf.call(readonly, key) >= 0) {
+          return Object.defineProperty(_this, key, {
+            get: function() {
+              return property[key];
+            },
+            enumerable: true
+          });
+        } else {
+          return Object.defineProperty(_this, key, {
+            get: function() {
+              return property[key];
+            },
+            set: function(val) {
+              return property[key] = val;
+            },
+            enumerable: true
+          });
+        }
+      };
+      for (key in property) {
+        _fn(key);
+      }
+    }
+
+    Status.prototype.status = function() {
+      return this.socket.status(property);
+    };
+
+    Status.prototype.init = function(rows, cols) {
+      property.rows = rows;
+      property.cols = cols;
+      return this.reset();
+    };
+
+    Status.prototype.update = function(tile) {
+      if (tile.value == null) {
+        return;
+      }
+      if (property.position[tile.m][tile.n] !== tile.value) {
+        property.changed = true;
+      }
+      property.position[tile.m][tile.n] = tile.value;
+      property.max = Math.max(property.max, tile.value);
+      return property.high = Math.max(property.max, property.high);
+    };
+
+    Status.prototype.reset = function() {
+      var _i, _ref, _results;
+      property.position = (function() {
+        _results = [];
+        for (var _i = 0, _ref = property.rows; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--){ _results.push(_i); }
+        return _results;
+      }).apply(this).map(function(d) {
+        return [];
+      });
+      console.log('reset', property);
+      property.max = 0;
+      return property.changed = false;
+    };
+
+    Status.prototype.broadcast = function() {
+      if (this.GameState.get() !== this.GameState.STATE.LOGIN) {
+        return this.socket.status(property);
+      }
+    };
+
+    return Status;
+
+  })();
+
+  sw.factory('status', function($rootScope, GameState, socket) {
+    return new Status($rootScope, GameState, socket);
+  });
+
+}).call(this);
+
+(function() {
   var sw;
 
   sw = angular.module('swarm-2048');
@@ -643,15 +736,27 @@
   sw.factory('socket', function($rootScope, auth, opponents) {
     var connect, identify, powerup, socket, status;
     socket = null;
-    connect = function() {
+    connect = function(group) {
+      if (group == null) {
+        group = 'testing';
+      }
       if (socket == null) {
+        console.log('connecting socket');
         socket = io();
+        if (group != null) {
+          socket.emit('joinGroup', group);
+        }
         socket.on('addPlayers', function(data) {
           return $rootScope.$broadcast('socket:addPlayers', data);
         });
         socket.on('updatePlayers', function(data) {
+          console.log('UPDATE PLAYERS');
           opponents.update(data);
           return $rootScope.$broadcast('socket:updatePlayers', data);
+        });
+        socket.on('allReady', function(data) {
+          console.log('ALL READY');
+          return $rootScope.$broadcast('socket:allReady');
         });
         socket.on('identify', function() {
           if (auth.id() != null) {
@@ -766,8 +871,7 @@
       }
     });
     return $scope.submit = function() {
-      auth.login($scope.username);
-      return socket.identify();
+      return auth.login($scope.username);
     };
   });
 
@@ -783,16 +887,17 @@
 
     grid = null;
 
-    function SwStageController($scope, Tiles, Utils, $rootScope, socket, opponents, powerup, auth, GameState) {
-      var broadcastStatus, status, tiles, values,
+    function SwStageController($scope, Tiles, Utils, $rootScope, socket, opponents, powerup, auth, GameState, status, $window) {
+      var tiles, values,
         _this = this;
       this.$scope = $scope;
       this.Tiles = Tiles;
       this.Utils = Utils;
       this.$rootScope = $rootScope;
-      socket.connect();
+      this.status = status;
       GameState.set(GameState.STATE.LOGIN);
-      tiles = new Tiles(4, 4);
+      this.status.init(4, 4);
+      tiles = new Tiles(4, 4, this.status);
       values = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15], [16, 17, 18, 19, 20], [21, 22, 23, 24, 25]];
       values = [[4, 4, 4, 4, 4], [4, 2, 2, 2, 4], [4, 2, 2, 2, 4], [4, 2, 2, 2, 4], [4, 4, 4, 4, 4]];
       tiles.init(values);
@@ -802,39 +907,36 @@
       this.$scope.wait = {
         ready: false
       };
-      broadcastStatus = function() {
-        console.log('sending status:', tiles.status);
-        if (GameState.get() !== GameState.STATE.LOGIN) {
-          return socket.status(tiles.status);
-        }
-      };
       this.$scope.$watch((function() {
         return auth.id();
       }), function(val) {
         if (val != null) {
+          console.log('logging in', val);
           GameState.set(GameState.STATE.WAITFORPLAYERS);
+          socket.connect();
+          socket.identify();
           return _this.$scope.name = auth.id();
         }
       });
+      this.$scope.$on('socket:allReady', function() {
+        return GameState.set(GameState.STATE.GAMEPLAY);
+      });
       this.$scope.$watch((function() {
-        return tiles.status.score;
+        return _this.status.score;
       }), function(val) {
         return _this.$scope.score = val;
-      });
-      this.$scope.$watch('wait.ready', function(val) {
-        return console.log('ready', val);
-      });
-      this.$scope.$on('socket:status', broadcastStatus);
-      this.$scope.$on('socket:applyPowerup', function(e, data) {
-        console.log('applying powerup', data);
-        powerup.apply(data, tiles);
-        broadcastStatus();
-        return $rootScope.$apply();
       });
       this.$scope.$on('socket:rank', function(e, rank) {
         return _this.$scope.rank = rank;
       });
-      status = null;
+      this.$scope.$on((function() {
+        return _this.status.gameover;
+      }), function(val) {
+        if (val) {
+          this.$scope.gameover = true;
+          return this.$scope.loser = true;
+        }
+      });
       this.$scope.$on('keydown', function(e, val) {
         var index, keyCode, newTiles, powerupData;
         keyCode = val.keyCode;
@@ -846,30 +948,27 @@
           powerupData = powerup.create(powerup.type.REMOVE_MAX);
           socket.powerup(opponents.powerup(index, powerupData));
         }
-        if (!(status != null ? status.gameover : void 0)) {
-          status = (function() {
-            switch (val.keyCode) {
-              case 37:
-                return tiles.combine('left');
-              case 38:
-                return tiles.combine('up');
-              case 39:
-                return tiles.combine('right');
-              case 40:
-                return tiles.combine('down');
-            }
-          })();
-          if (status != null ? status.changed : void 0) {
+        if (!status.gameover) {
+          switch (val.keyCode) {
+            case 37:
+              tiles.combine('left');
+              break;
+            case 38:
+              tiles.combine('up');
+              break;
+            case 39:
+              tiles.combine('right');
+              break;
+            case 40:
+              tiles.combine('down');
+          }
+          if (status.changed) {
             newTiles = tiles.spawn(1);
             newTiles.forEach(function(tile) {
+              console.log('status position', status.position);
               return status.position[tile.m][tile.n] = tile.value;
             });
-            socket.status(status);
-            if (status.gameover) {
-              console.log('gameover!');
-              _this.$scope.gameover = true;
-              _this.$scope.loser = true;
-            }
+            status.broadcast();
           }
         }
         return $rootScope.$apply();
@@ -880,7 +979,7 @@
 
   })();
 
-  sw.controller('swStageCtrl', ['$scope', 'Tiles', 'Utils', '$rootScope', 'socket', 'opponents', 'powerup', 'auth', 'GameState', SwStageController]);
+  sw.controller('swStageCtrl', ['$scope', 'Tiles', 'Utils', '$rootScope', 'socket', 'opponents', 'powerup', 'auth', 'GameState', 'status', '$window', SwStageController]);
 
 }).call(this);
 
@@ -903,6 +1002,34 @@
         width: "" + width + "%",
         height: "" + height + "%"
       };
+    };
+  });
+
+}).call(this);
+
+(function() {
+  var sw;
+
+  sw = angular.module('swarm-2048');
+
+  sw.controller('swWaitingCtrl', function($scope, auth, socket, opponents, status) {
+    $scope.$watch((function() {
+      return auth.id();
+    }), function(val) {
+      return $scope.username = auth.id();
+    });
+    $scope.opponents = opponents.list;
+    $scope.wait = {
+      ready: false
+    };
+    $scope.$watch('wait.ready', function(val) {
+      console.log('ready', val);
+      status.ready = val;
+      status.change = true;
+      return status.broadcast();
+    });
+    return $scope.toggle = function() {
+      return $scope.wait.ready = $scope.wait.ready ? false : true;
     };
   });
 
@@ -996,6 +1123,23 @@
       restrict: 'EA',
       templateUrl: 'tile',
       controller: 'swTileCtrl'
+    };
+  });
+
+}).call(this);
+
+(function() {
+  var sw;
+
+  sw = angular.module('swarm-2048');
+
+  sw.directive('swWaiting', function() {
+    return {
+      scope: {},
+      replace: true,
+      restrict: 'EA',
+      templateUrl: 'waiting',
+      controller: 'swWaitingCtrl'
     };
   });
 

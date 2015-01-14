@@ -1,0 +1,18 @@
+.waiting
+    .title Waiting For Other Players...
+    .columns
+        .ready Ready
+        .name User
+    .user
+        .ready
+            .button(ng-click='toggle()')
+                .-ready(ng-show='wait.ready')
+                .-not-ready(ng-show='!wait.ready')
+        .name
+            .text {{ username }}
+    .opponents
+        .opponent-status(ng-repeat='opponent in opponents')
+            .status
+                .-ready(ng-show='opponent.status.ready')
+                .-not-ready(ng-show='!opponent.status.ready')
+            .name {{ opponent.name }}

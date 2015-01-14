@@ -15,23 +15,51 @@ http = require('http').Server(app)
 io = require('socket.io')(http)
 
 players = {}
+notReady = []
+gameInProgress = false
+playersGameover = []
 
 io.on 'connection', (socket)->
     console.log 'user connected'
     socket.emit 'identify'
+
+    socket.on 'joinGroup', (group)->
+        console.log "[#{socket.id}] Joining group", group
+        socket.join group
+
     socket.on 'identify', (user)->
         if players[user]?
-            socket.emit 'userConflict', user
+            socket.emit "[#{socket.id}] User Conflict:", user
         else
-            console.log 'Adding user:', user
+            console.log "[#{socket.id}] identify user:", user
             players[user] =
                 id: socket.id
             io.emit 'status'
             console.log players
 
     socket.on 'status', (data)->
-        console.log data
         players[data.id].status = data.status
+
+        if data.status.ready and not gameInProgress
+            console.log "[#{socket.id}] READY and game not in progress"
+            index = notReady.indexOf data.id
+            notReady.splice index, 1 if index > -1
+
+        if not data.status.ready
+            console.log "[#{socket.id}] NOT READY and game not in progress"
+            notReady.push data.id if data.id not in notReady
+
+        if notReady.length is 0 and not gameInProgress
+            console.log "[#{socket.id}] EMIT ALL READY"
+            gameInProgress = true
+            io.emit 'allReady'
+
+        if data.status.gameover
+            playersGameover.push data.id
+            currentPlayers = (key for key of players)
+            if currentPlayers.every((d)-> d in playersGameover)
+                playersGameover = []
+                gameInProgress = false
 
         socket.broadcast.emit 'updatePlayers', data
         ranking =
@@ -56,8 +84,15 @@ io.on 'connection', (socket)->
             if player.id is socket.id
                 io.emit 'disconnect', name
                 delete players[name]
+                if player.id not in playersGameover
+                    playersGameover.push player.id
+                currentPlayers = (key for key of players)
+                if currentPlayers.every((d)-> d in playersGameover)
+                    playersGameover = []
+                    gameInProgress = false
+
         console.log 'user disconnected'
-        console.log players
+        console.log "Users", (key for key of players)
 
 server = null
 

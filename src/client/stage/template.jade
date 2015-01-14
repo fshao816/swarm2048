@@ -2,18 +2,7 @@
     .intro(ng-show="state.login")
         sw-login
     .wait(ng-show="state.waitForPlayers")
-        .user
-            .name
-                .text {{ name }}
-            .ready
-                input(type='checkbox', ng-model='wait.ready')
-        .opponents
-            .opponent-status(ng-repeat='opponent in opponents')
-                .name {{ opponent.name }}
-                .status
-                    .ready(ng-if='opponent.status.ready')
-                    .not-ready(ng-if='!opponent.status.ready')
-
+        sw-waiting
     .stage(ng-if="state.gameplay")
         .opponents
             .opponents-stage
