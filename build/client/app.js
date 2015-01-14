@@ -55,6 +55,7 @@
       this.value = null;
       this.reducible = false;
       this.level = 0;
+      this.powerup = null;
     }
 
     return Tile;
@@ -227,22 +228,20 @@
     };
 
     Tiles.prototype.remove = function(tile) {
-      var index, _ref, _ref1, _ref2;
+      var index;
       if (tile instanceof Tile) {
 
       } else {
         index = tile;
         tile = this.data[index];
         this.data.splice(index, 1);
-        if ((_ref = this.status) != null) {
-          _ref.changed = true;
+        if (this.status != null) {
+          this.status.changed = true;
+          this.status.position[tile.m][tile.n] = null;
+          return this.status.max = Math.max.apply(null, this.data.map(function(tile) {
+            return tile.value;
+          }));
         }
-        if ((_ref1 = this.status) != null) {
-          _ref1.position[tile.m][tile.n] = null;
-        }
-        return (_ref2 = this.status) != null ? _ref2.max = Math.max.apply(null, this.data.map(function(tile) {
-          return tile.value;
-        })) : void 0;
       }
     };
 
@@ -266,7 +265,6 @@
         i = parseInt(Math.random() * free.length);
         _ref = free[i], m = _ref.m, n = _ref.n;
         free.splice(i, 1);
-        console.log('spawn', m, n);
         tile = new Tile(m, n);
         tile.value = 2;
         if (_this.status != null) {
@@ -277,6 +275,29 @@
         return _this.freeSpace[m][n] = false;
       });
       return tiles;
+    };
+
+    Tiles.prototype.attachPowerup = function(powerup) {
+      var index, tile, valid;
+      console.log('attaching powerup');
+      valid = this.data.filter(function(tile) {
+        return !tile.reduced;
+      });
+      index = parseInt(Math.random() * valid.length);
+      tile = valid[index];
+      tile.powerup = powerup;
+      return (function(tile, $rootScope) {
+        var remove,
+          _this = this;
+        this.$rootScope = $rootScope;
+        remove = function() {
+          tile.powerup = null;
+          if ($rootScope.$$phase == null) {
+            return $rootScope.$apply();
+          }
+        };
+        return setTimeout(remove, tile.powerup.duration);
+      })(tile, this.$rootScope);
     };
 
     Tiles.prototype.cleanReduced = function() {
@@ -294,6 +315,7 @@
 
     Tiles.prototype.combine = function(direction) {
       var config;
+      console.log('tiles combine');
       this.cleanReduced();
       if (this.data.length === this.maxTiles) {
         if (!this.reducible()) {
@@ -403,6 +425,18 @@
 
           next = line[i + 1];
           if ((next != null) && criteria(tile.value, next.value)) {
+            if (_this.status != null) {
+              if (next.powerup != null) {
+                _this.status.powerups.push(next.powerup);
+                next.powerup = null;
+                console.log('added powerup', _this.status.powerups);
+              }
+              if (tile.powerup != null) {
+                _this.status.powerups.push(tile.powerup);
+                tile.powerup = null;
+                console.log('added powerup', _this.status.powerups);
+              }
+            }
             next.reduced = true;
             next[tileKey] = lineCursor;
             tile.value = tile.value + next.value;
@@ -524,22 +558,48 @@
   sw = angular.module('swarm-2048');
 
   sw.factory('powerup', function() {
-    var apply, create, type;
+    var apply, create, key, spawn, type, types, val;
     type = {
       REMOVE_MAX: 'remove_max',
       BLOCKER: 'blocker'
     };
+    types = (function() {
+      var _results;
+      _results = [];
+      for (key in type) {
+        val = type[key];
+        _results.push(val);
+      }
+      return _results;
+    })();
     create = function(kind) {
       switch (kind) {
         case type.REMOVE_MAX:
           return {
-            type: type.REMOVE_MAX
+            type: type.REMOVE_MAX,
+            "class": '-powerup-icon -remove-max',
+            duration: 5000,
+            label: 'D'
           };
         case type.BLOCKER:
           return {
-            type: type.BLOCKER
+            type: type.BLOCKER,
+            "class": '-powerup-icon -blocker',
+            duration: 5000,
+            label: 'B'
           };
       }
+    };
+    spawn = function(tiles) {
+      var generate, index, powerup, powerupType;
+      generate = Math.random() * 100;
+      if (generate < 1) {
+        return;
+      }
+      index = parseInt(Math.random() * types.length);
+      powerupType = types[index];
+      powerup = create(powerupType);
+      return tiles.attachPowerup(powerup);
     };
     apply = function(data, tiles) {
       var i, max, maxes, removeIndex, valid;
@@ -565,7 +625,8 @@
     return {
       apply: apply,
       type: type,
-      create: create
+      create: create,
+      spawn: spawn
     };
   });
 
@@ -651,6 +712,7 @@
         return console.log(options);
       });
       $rootScope.$on('socket:status', this.broadcast);
+      this.powerups = [];
       _fn = function(key) {
         if (__indexOf.call(readonly, key) >= 0) {
           return Object.defineProperty(_this, key, {
@@ -907,6 +969,7 @@
       this.$scope.wait = {
         ready: false
       };
+      this.$scope.powerups = this.status.powerups;
       this.$scope.$watch((function() {
         return auth.id();
       }), function(val) {
@@ -940,6 +1003,9 @@
       this.$scope.$on('keydown', function(e, val) {
         var index, keyCode, newTiles, powerupData;
         keyCode = val.keyCode;
+        if (GameState.get() !== GameState.STATE.GAMEPLAY) {
+          return;
+        }
         if (keyCode > 47 && keyCode < 58) {
           index = keyCode - 49;
           if (index < 0) {
@@ -962,12 +1028,15 @@
             case 40:
               tiles.combine('down');
           }
+          console.log(status);
           if (status.changed) {
+            console.log('status changed');
             newTiles = tiles.spawn(1);
             newTiles.forEach(function(tile) {
               console.log('status position', status.position);
               return status.position[tile.m][tile.n] = tile.value;
             });
+            powerup.spawn(tiles);
             status.broadcast();
           }
         }
@@ -988,9 +1057,9 @@
 
   sw = angular.module('swarm-2048');
 
-  sw = sw.controller('swTileCtrl', function($scope, $animate) {
+  sw = sw.controller('swTileCtrl', function($scope, $animate, powerup) {
     $scope.tile.$scope = $scope;
-    return $scope.style = function() {
+    $scope.style = function() {
       var height, left, top, width;
       height = 100 / ($scope.size.rows || 10);
       width = 100 / ($scope.size.cols || 10);
@@ -1002,6 +1071,17 @@
         width: "" + width + "%",
         height: "" + height + "%"
       };
+    };
+    return $scope.powerup = function() {
+      if ($scope.tile.powerup == null) {
+        return null;
+      }
+      switch ($scope.tile.powerup.type) {
+        case powerup.type.REMOVE_MAX:
+          return ["_powerup", "-remove-max"];
+        case powerup.type.BLOCKER:
+          return ["_powerup", "-blocker"];
+      }
     };
   });
 
@@ -1025,7 +1105,7 @@
     $scope.$watch('wait.ready', function(val) {
       console.log('ready', val);
       status.ready = val;
-      status.change = true;
+      status.changed = true;
       return status.broadcast();
     });
     return $scope.toggle = function() {

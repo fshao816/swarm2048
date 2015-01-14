@@ -17,6 +17,12 @@
         .player
             .status
                 .powerups.section
+                    .label Power-ups
+                    .icons
+                        .powerup-icon-wrap(ng-repeat='powerup in powerups')
+                            div(class="{{powerup.class}}")
+                                span.label{{powerup.label}}
+
                 .score.section
                     .label Score
                     .text

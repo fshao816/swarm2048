@@ -15,6 +15,7 @@ class Tile
         @value = null
         @reducible = no
         @level = 0
+        @powerup = null
 
 class Tiles
     maxRows = 0
@@ -107,10 +108,11 @@ class Tiles
             index = tile
             tile = @data[index]
             @data.splice index, 1
-            @status?.changed = true
-            @status?.position[tile.m][tile.n] = null
-            @status?.max =
-                Math.max.apply null, @data.map (tile)->tile.value
+            if @status?
+                @status.changed = true
+                @status.position[tile.m][tile.n] = null
+                @status.max =
+                    Math.max.apply null, @data.map (tile)->tile.value
 
     spawn: (num = 1)->
         free = @freeSpace.free()
@@ -120,7 +122,6 @@ class Tiles
             i = parseInt(Math.random() * free.length)
             {m, n} = free[i]
             free.splice i, 1
-            console.log 'spawn', m, n
             tile = new Tile m, n
             tile.value = 2
 
@@ -132,6 +133,18 @@ class Tiles
             @freeSpace[m][n] = false
         tiles
 
+    attachPowerup: (powerup)->
+        console.log 'attaching powerup'
+        valid = @data.filter((tile)-> not tile.reduced)
+        index = parseInt(Math.random() * valid.length)
+        tile = valid[index]
+        tile.powerup = powerup
+        do (tile, @$rootScope)->
+            remove = =>
+                tile.powerup = null
+                $rootScope.$apply() unless $rootScope.$$phase?
+            setTimeout remove, tile.powerup.duration
+
     cleanReduced: =>
         reduced = @data.filter (d)-> d.reduced
         reduced.forEach (d)=>
@@ -139,6 +152,7 @@ class Tiles
             @data.splice i, 1
 
     combine: (direction)=>
+        console.log 'tiles combine'
         @cleanReduced()
         if @data.length is @maxTiles
             if not @reducible()
@@ -230,6 +244,16 @@ class Tiles
                 ###
                 next = line[i+1]
                 if next? and criteria(tile.value, next.value)
+                    if @status?
+                        if next.powerup?
+                            @status.powerups.push next.powerup
+                            next.powerup = null
+                            console.log 'added powerup', @status.powerups
+                        if tile.powerup?
+                            @status.powerups.push tile.powerup
+                            tile.powerup = null
+                            console.log 'added powerup', @status.powerups
+
                     next.reduced = true
                     next[tileKey] = lineCursor
                     tile.value = tile.value + next.value

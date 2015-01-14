@@ -21,6 +21,8 @@ class Status
 
         $rootScope.$on 'socket:status', @broadcast
 
+        @powerups = []
+
         for key of property
             do (key)=>
                 if key in readonly

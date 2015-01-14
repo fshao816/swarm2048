@@ -42,6 +42,8 @@ class SwStageController
         @$scope.wait =
             ready: false
 
+        @$scope.powerups = @status.powerups
+
         @$scope.$watch (-> auth.id()), (val)=>
             if val?
                 console.log 'logging in', val
@@ -72,6 +74,8 @@ class SwStageController
 
         @$scope.$on 'keydown', (e, val)=>
             keyCode = val.keyCode
+
+            return unless GameState.get() is GameState.STATE.GAMEPLAY
             if keyCode > 47 and keyCode < 58
                 index = keyCode - 49
                 index = 10 if index < 0
@@ -88,11 +92,16 @@ class SwStageController
                         tiles.combine 'right'
                     when 40
                         tiles.combine 'down'
+                console.log status
                 if status.changed
+                    console.log 'status changed'
                     newTiles = tiles.spawn(1)
                     newTiles.forEach (tile)->
                         console.log 'status position', status.position
                         status.position[tile.m][tile.n] = tile.value
+
+                    powerup.spawn tiles
+
                     status.broadcast()
 
             $rootScope.$apply()

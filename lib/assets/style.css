@@ -38,6 +38,12 @@ body{font:13px/1.231 Helvetica,arial,sans-serif;height:100%;margin:0;padding:0}
 .opponents .opponents-stage .opponent .grid .tile ._inner{border-radius:0}
 .opponents .opponents-stage .opponent .grid .tile ._value{font-size:8px}
 
+.stage .player .status .powerups .powerup-icon-wrap{height:3em;display:inline-block;width:3em;position:relative;}
+.stage .player .status .powerups .powerup-icon-wrap .-powerup-icon{height:2.5em;width:2.5em;margin:auto;position:absolute;top:0;bottom:0;left:0;right:0;border-radius:.6em;text-align:center;}
+.stage .player .status .powerups .powerup-icon-wrap .-powerup-icon .label{font-size:1.5em;line-height:1.5em;color:#fff;font-weight:bold}
+.stage .player .status .powerups .powerup-icon-wrap .-blocker{background-color:#f00}
+.stage .player .status .powerups .powerup-icon-wrap .-remove-max{background-color:#00f}
+
 .app{height:100%}
 .stage{height:100%;}
 .stage .opponents{display:inline-block;width:35%;height:90%;vertical-align:top;}
@@ -60,6 +66,7 @@ body{font:13px/1.231 Helvetica,arial,sans-serif;height:100%;margin:0;padding:0}
 
 .tile{display:block;position:absolute;}
 .tile ._inner{-webkit-transition:opacity linear 70ms;transition:opacity linear 70ms;display:block;position:relative;height:96%;width:96%;left:3%;top:2%;border-radius:.7em;text-align:center;}
+.tile ._inner ._powerup{height:2em;width:2em;background-color:#9b12d3;margin:auto;border-radius:1em;position:absolute;right:0;left:0;bottom:50%;top:0}
 .tile ._inner ._value{font-size:22px;vertical-align:middle;display:inline-block;position:absolute;margin:auto;right:0;left:0;bottom:0;top:0;height:13px}
 .tile ._inner.-reduced{opacity:0}
 

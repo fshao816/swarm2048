@@ -13,7 +13,7 @@ sw.controller 'swWaitingCtrl', ($scope, auth, socket, opponents, status)->
     $scope.$watch 'wait.ready', (val)->
         console.log 'ready', val
         status.ready = val
-        status.change = true
+        status.changed = true
         status.broadcast()
 
 

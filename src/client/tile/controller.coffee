@@ -1,6 +1,6 @@
 sw = angular.module 'swarm-2048'
 
-sw = sw.controller 'swTileCtrl', ($scope, $animate)->
+sw = sw.controller 'swTileCtrl', ($scope, $animate, powerup)->
 
     $scope.tile.$scope = $scope
     $scope.style = ->
@@ -12,3 +12,10 @@ sw = sw.controller 'swTileCtrl', ($scope, $animate)->
         left: "#{left}%"
         width: "#{width}%"
         height: "#{height}%"
+    $scope.powerup = ->
+        return null unless $scope.tile.powerup?
+        switch $scope.tile.powerup.type
+            when powerup.type.REMOVE_MAX
+                ["_powerup", "-remove-max"]
+            when powerup.type.BLOCKER
+                ["_powerup", "-blocker"]
