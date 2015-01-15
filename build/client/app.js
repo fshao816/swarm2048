@@ -324,6 +324,7 @@
           if (this.status != null) {
             this.status.changed = true;
             this.status.gameover = true;
+            this.status.loser = true;
           }
           return;
         }
@@ -445,6 +446,9 @@
             next.reduced = true;
             next[tileKey] = lineCursor;
             tile.value = tile.value + next.value;
+            if (tile.value === 16 && (_this.status != null)) {
+              _this.status.endGame = true;
+            }
             tile.level = _this.leveler(tile.value);
             if (_this.status != null) {
               _this.status.score = _this.status.score + tile.value;
@@ -512,11 +516,9 @@
       });
       return $rootScope.$apply();
     };
-    statusKeys = ['gameover', 'ready'];
+    statusKeys = ['gameover', 'ready', 'winner', 'loser'];
     update = function(data) {
       var opponent;
-      console.log('updating opponent', data);
-      console.log(map);
       if (!(data.id in map)) {
         add(data);
       }
@@ -526,8 +528,7 @@
         return opponent.status[d] = data.status[d];
       });
       opponent.message = opponent.status.gameover;
-      $rootScope.$apply();
-      return console.log(list);
+      return $rootScope.$apply();
     };
     powerup = function(playerRank, powerupData) {
       var opponent, player, _i, _len;
@@ -655,7 +656,7 @@
               if ($rootScope.$$phase == null) {
                 return $rootScope.$apply();
               }
-            }, 2000);
+            }, 10000);
           })(tile);
       }
     };
@@ -677,7 +678,8 @@
   STATE = {
     LOGIN: 'login',
     WAITFORPLAYERS: 'waitForPlayers',
-    GAMEPLAY: 'gameplay'
+    GAMEPLAY: 'gameplay',
+    GAMEOVER: 'gameover'
   };
 
   sw.factory('GameState', function($rootScope) {
@@ -685,7 +687,8 @@
     state = {
       login: false,
       waitForPlayers: false,
-      gameplay: false
+      gameplay: false,
+      gameover: false
     };
     set = function(val) {
       var key;
@@ -729,7 +732,10 @@
     high: 0,
     score: 0,
     gameover: false,
-    ready: false
+    ready: false,
+    endGame: false,
+    loser: false,
+    winner: false
   };
 
   readonly = [];
@@ -873,6 +879,10 @@
           if (rank > 0) {
             return $rootScope.$broadcast('socket:rank', rank);
           }
+        });
+        socket.on('endGame', function(topPlayer) {
+          console.log('socket endGame', topPlayer);
+          return $rootScope.$broadcast('socket:gameComplete', topPlayer);
         });
         socket.on('disconnect', function(id) {
           opponents.remove(id);
@@ -1027,6 +1037,25 @@
       }), function(val) {
         return _this.$scope.score = val;
       });
+      this.$scope.$on('socket:gameComplete', function(e, playerName) {
+        GameState.set(GameState.STATE.GAMEOVER);
+        _this.$scope.gameover = true;
+        if (playerName === auth.id()) {
+          _this.$scope.winner = true;
+          _this.status.loser = false;
+          _this.status.winner = true;
+        } else {
+          _this.$scope.loser = true;
+          _this.status.loser = true;
+          _this.status.winner = false;
+        }
+        _this.status.gameover = true;
+        _this.status.endGame = false;
+        _this.status.broadcast();
+        if (_this.$scope.$$phase == null) {
+          return _this.$scope.$apply();
+        }
+      });
       this.$scope.$on('socket:applyPowerup', function(e, data) {
         console.log('applying powerup', data);
         powerup.apply(data, tiles);
@@ -1039,14 +1068,6 @@
       });
       this.$scope.$on('socket:rank', function(e, rank) {
         return _this.$scope.rank = rank;
-      });
-      this.$scope.$on((function() {
-        return _this.status.gameover;
-      }), function(val) {
-        if (val) {
-          this.$scope.gameover = true;
-          return this.$scope.loser = true;
-        }
       });
       this.$scope.$on('keydown', function(e, val) {
         var index, keyCode, newTiles, powerupData, targetedPowerup;

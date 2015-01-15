@@ -161,6 +161,7 @@ class Tiles
                 if @status?
                     @status.changed = true
                     @status.gameover = true
+                    @status.loser = true
                 return
         config =
             switch direction
@@ -263,6 +264,10 @@ class Tiles
                     next.reduced = true
                     next[tileKey] = lineCursor
                     tile.value = tile.value + next.value
+
+                    if tile.value is 16 and @status?
+                        @status.endGame = true
+
                     tile.level = @leveler tile.value
                     if @status?
                         @status.score = @status.score + tile.value

@@ -59,6 +59,29 @@ class SwStageController
         @$scope.$watch (=> @status.score), (val)=>
             @$scope.score = val
 
+        @$scope.$on 'socket:gameComplete', (e, playerName)=>
+            GameState.set GameState.STATE.GAMEOVER
+
+            @$scope.gameover = true
+
+            if playerName is auth.id()
+                @$scope.winner = true
+                @status.loser = false
+                @status.winner = true
+            else
+                @$scope.loser = true
+                @status.loser = true
+                @status.winner = false
+
+            @status.gameover = true
+            @status.endGame = false
+            @status.broadcast()
+
+
+
+            @$scope.$apply() unless @$scope.$$phase?
+
+
         @$scope.$on 'socket:applyPowerup', (e, data)=>
             console.log 'applying powerup', data
             powerup.apply data, tiles
@@ -71,10 +94,14 @@ class SwStageController
         @$scope.$on 'socket:rank', (e, rank)=>
             @$scope.rank = rank
 
-        @$scope.$on (=> @status.gameover), (val)->
-            if val
-                @$scope.gameover = true
-                @$scope.loser = true
+        # @$scope.$on (=> @status.gameover), (val)->
+        #     if val
+        #         @$scope.gameover = true
+        #         if @status.loser
+        #             @$scope.loser = true
+        #         else
+        #             @$scope.winner = true
+
 
         @$scope.$on 'keydown', (e, val)=>
             keyCode = val.keyCode

@@ -4,6 +4,7 @@ STATE =
     LOGIN: 'login'
     WAITFORPLAYERS: 'waitForPlayers'
     GAMEPLAY: 'gameplay'
+    GAMEOVER: 'gameover'
 
 sw.factory 'GameState', ($rootScope)->
 
@@ -11,6 +12,7 @@ sw.factory 'GameState', ($rootScope)->
         login: false
         waitForPlayers: false
         gameplay: false
+        gameover: false
 
     set = (val)->
         state[key] = false for key of state

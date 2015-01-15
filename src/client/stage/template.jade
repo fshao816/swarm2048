@@ -3,7 +3,7 @@
         sw-login
     .wait(ng-show="state.waitForPlayers")
         sw-waiting
-    .stage(ng-if="state.gameplay")
+    .stage(ng-if="state.gameplay || state.gameover")
         .opponents
             .opponents-stage
                 .opponent(ng-repeat='opponent in opponents')
@@ -11,9 +11,10 @@
                     .status
                         .stat.rank {{ opponent.rank }}
                         .stat.name {{ opponent.name }}
-                    .overlay(ng-if="opponent.message")
-                        .game-over(ng-if="opponent.status.gameover")
-                            span LOSER
+                    .overlay(ng-show="opponent.message")
+                        .game-over(ng-show="opponent.status.gameover")
+                            span(ng-show="opponent.status.loser") LOSER
+                            span(ng-show="opponent.status.winner") WINNER
         .player
             .status
                 .powerups.section
@@ -32,9 +33,9 @@
                     .text {{ rank }}
             .board
                 sw-game-board#main-board(sw-data="tiles")
-                .board-status(ng-if="gameover")
-                    .winner(ng-if="winner") WINNER
-                    .loser(ng-if="loser") LOSER
+                .board-status(ng-show="gameover")
+                    .winner(ng-show="winner") WINNER
+                    .loser(ng-show="loser") LOSER
             .identify
                 .text {{ name }}
         .log

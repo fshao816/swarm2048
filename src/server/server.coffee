@@ -49,17 +49,11 @@ io.on 'connection', (socket)->
             console.log "[#{socket.id}] NOT READY and game not in progress"
             notReady.push data.id if data.id not in notReady
 
-        if notReady.length is 0 and not gameInProgress
+        if notReady.length is 0 and not gameInProgress and
+        not data.status.gameover
             console.log "[#{socket.id}] EMIT ALL READY"
             gameInProgress = true
             io.emit 'allReady'
-
-        if data.status.gameover
-            playersGameover.push data.id
-            currentPlayers = (key for key of players)
-            if currentPlayers.every((d)-> d in playersGameover)
-                playersGameover = []
-                gameInProgress = false
 
         socket.broadcast.emit 'updatePlayers', data
         ranking =
@@ -72,7 +66,29 @@ io.on 'connection', (socket)->
             else
                 0
         ).map (d)-> d.name
+
         io.emit 'ranking', sorted
+
+        if data.status.gameover and data.status.loser
+            playersGameover.push data.id
+            currentPlayers = (key for key of players)
+            if currentPlayers.every((d)-> d in playersGameover) and
+            gameInProgress
+                console.log 'all players gameover'
+                topPlayerName = sorted[0]
+                io.emit 'endGame', topPlayerName
+                playersGameover = []
+                gameInProgress = false
+
+        if data.status.endGame and gameInProgress
+            console.log 'endgame:', data.id
+            topPlayerName = sorted[0]
+            console.log sorted, topPlayerName
+            io.emit 'endGame', topPlayerName
+            playersGameover = []
+            gameInProgress = false
+
+
 
     socket.on 'powerup', (data)->
         socketId = players[data.id]?.id

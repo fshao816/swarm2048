@@ -35,10 +35,10 @@ sw.factory 'opponents', ($rootScope, Tiles)->
     statusKeys = [
         'gameover'
         'ready'
+        'winner'
+        'loser'
     ]
     update = (data)->
-        console.log 'updating opponent', data
-        console.log map
         add data unless data.id of map
 
         opponent = map[data.id]
@@ -49,7 +49,6 @@ sw.factory 'opponents', ($rootScope, Tiles)->
         opponent.message = opponent.status.gameover
 
         $rootScope.$apply()
-        console.log list
 
     powerup = (playerRank, powerupData)->
         # find player of rank

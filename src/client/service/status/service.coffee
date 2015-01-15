@@ -10,6 +10,9 @@ property =
     score: 0
     gameover: false
     ready: false
+    endGame: false
+    loser: false
+    winner: false
 
 readonly = []
 

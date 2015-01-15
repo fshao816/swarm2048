@@ -29,6 +29,9 @@ sw.factory 'socket', ($rootScope, auth, opponents)->
                 rank = (data.indexOf auth.id()) + 1
                 if rank > 0
                     $rootScope.$broadcast 'socket:rank', rank
+            socket.on 'endGame', (topPlayer)->
+                console.log 'socket endGame', topPlayer
+                $rootScope.$broadcast 'socket:gameComplete', topPlayer
             socket.on 'disconnect', (id)->
                 opponents.remove id
                 $rootScope.$broadcast 'socket:disconnect', id
