@@ -56,6 +56,7 @@
       this.reducible = false;
       this.level = 0;
       this.powerup = null;
+      this.meta = {};
     }
 
     return Tile;
@@ -409,12 +410,16 @@
         });
         lineCursor = start;
         return line.forEach(function(tile, i) {
-          var next;
+          var next, _ref, _ref1, _ref2;
           if (tile.reduced) {
             return;
           }
           if (tile[tileKey] !== lineCursor) {
-            tile[tileKey] = lineCursor;
+            if ((_ref = tile.meta) != null ? _ref.blocked : void 0) {
+              lineCursor = tile[tileKey];
+            } else {
+              tile[tileKey] = lineCursor;
+            }
           }
           /*
           Look ahead to next tile and see if it should
@@ -424,7 +429,7 @@
           */
 
           next = line[i + 1];
-          if ((next != null) && criteria(tile.value, next.value)) {
+          if ((next != null) && criteria(tile.value, next.value) && !((_ref1 = next.meta) != null ? _ref1.blocked : void 0) && !((_ref2 = tile.meta) != null ? _ref2.blocked : void 0)) {
             if (_this.status != null) {
               if (next.powerup != null) {
                 _this.status.powerups.push(next.powerup);
@@ -524,10 +529,23 @@
       $rootScope.$apply();
       return console.log(list);
     };
-    powerup = function(playerIndex, powerupData) {
-      console.log('making powerup for opponent', list[playerIndex].name);
+    powerup = function(playerRank, powerupData) {
+      var opponent, player, _i, _len;
+      player = null;
+      console.log(list, playerRank);
+      for (_i = 0, _len = list.length; _i < _len; _i++) {
+        opponent = list[_i];
+        if (opponent.rank === playerRank) {
+          player = opponent;
+          break;
+        }
+      }
+      if (player == null) {
+        return;
+      }
+      console.log('making powerup for opponent', player.name);
       return {
-        id: list[playerIndex].name,
+        id: player.name,
         powerup: powerupData
       };
     };
@@ -557,7 +575,7 @@
 
   sw = angular.module('swarm-2048');
 
-  sw.factory('powerup', function() {
+  sw.factory('powerup', function(auth, $rootScope) {
     var apply, create, key, spawn, type, types, val;
     type = {
       REMOVE_MAX: 'remove_max',
@@ -579,6 +597,8 @@
             type: type.REMOVE_MAX,
             "class": '-powerup-icon -remove-max',
             duration: 5000,
+            origin: auth.id() || 'unknown',
+            message: "" + (auth.id()) + " removed your max tile!!!",
             label: 'D'
           };
         case type.BLOCKER:
@@ -586,6 +606,8 @@
             type: type.BLOCKER,
             "class": '-powerup-icon -blocker',
             duration: 5000,
+            origin: auth.id() || 'unknown',
+            message: "" + (auth.id()) + " blocked one of your tiles!!!",
             label: 'B'
           };
       }
@@ -602,7 +624,7 @@
       return tiles.attachPowerup(powerup);
     };
     apply = function(data, tiles) {
-      var i, max, maxes, removeIndex, valid;
+      var i, index, max, maxes, removeIndex, tile, valid;
       if (data.type == null) {
         return;
       }
@@ -620,6 +642,21 @@
           i = parseInt(Math.random() * maxes.length);
           removeIndex = tiles.data.indexOf(maxes[i]);
           return tiles.remove(removeIndex);
+        case type.BLOCKER:
+          valid = tiles.data.filter(function(tile) {
+            return !tile.reduced;
+          });
+          index = parseInt(Math.random() * valid.length);
+          tile = valid[index];
+          tile.meta.blocked = true;
+          return (function(tile) {
+            return setTimeout(function() {
+              delete tile.meta.blocked;
+              if ($rootScope.$$phase == null) {
+                return $rootScope.$apply();
+              }
+            }, 2000);
+          })(tile);
       }
     };
     return {
@@ -970,6 +1007,7 @@
         ready: false
       };
       this.$scope.powerups = this.status.powerups;
+      this.$scope.logs = [];
       this.$scope.$watch((function() {
         return auth.id();
       }), function(val) {
@@ -989,6 +1027,16 @@
       }), function(val) {
         return _this.$scope.score = val;
       });
+      this.$scope.$on('socket:applyPowerup', function(e, data) {
+        console.log('applying powerup', data);
+        powerup.apply(data, tiles);
+        _this.$scope.logs.push({
+          id: _this.$scope.logs.length,
+          text: data.message
+        });
+        _this.status.broadcast();
+        return $rootScope.$apply();
+      });
       this.$scope.$on('socket:rank', function(e, rank) {
         return _this.$scope.rank = rank;
       });
@@ -1001,18 +1049,23 @@
         }
       });
       this.$scope.$on('keydown', function(e, val) {
-        var index, keyCode, newTiles, powerupData;
+        var index, keyCode, newTiles, powerupData, targetedPowerup;
         keyCode = val.keyCode;
         if (GameState.get() !== GameState.STATE.GAMEPLAY) {
           return;
         }
         if (keyCode > 47 && keyCode < 58) {
-          index = keyCode - 49;
-          if (index < 0) {
+          index = keyCode - 48;
+          if (index < 1) {
             index = 10;
           }
-          powerupData = powerup.create(powerup.type.REMOVE_MAX);
-          socket.powerup(opponents.powerup(index, powerupData));
+          powerupData = powerup.create(powerup.type.BLOCKER);
+          targetedPowerup = opponents.powerup(index, powerupData);
+          console.log(targetedPowerup);
+          if (targetedPowerup != null) {
+            socket.powerup(targetedPowerup);
+          }
+          return;
         }
         if (!status.gameover) {
           switch (val.keyCode) {
@@ -1071,6 +1124,15 @@
         width: "" + width + "%",
         height: "" + height + "%"
       };
+    };
+    $scope.meta = function() {
+      if ($scope.tile.meta == null) {
+        return null;
+      }
+      if ($scope.tile.meta.blocked) {
+        return ["_meta", "-blocked"];
+      }
+      return [];
     };
     return $scope.powerup = function() {
       if ($scope.tile.powerup == null) {

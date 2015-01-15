@@ -43,6 +43,7 @@ class SwStageController
             ready: false
 
         @$scope.powerups = @status.powerups
+        @$scope.logs = []
 
         @$scope.$watch (-> auth.id()), (val)=>
             if val?
@@ -58,11 +59,14 @@ class SwStageController
         @$scope.$watch (=> @status.score), (val)=>
             @$scope.score = val
 
-        # @$scope.$on 'socket:applyPowerup', (e, data)->
-        #     console.log 'applying powerup', data
-        #     powerup.apply data, tiles
-        #     broadcastStatus()
-        #     $rootScope.$apply()
+        @$scope.$on 'socket:applyPowerup', (e, data)=>
+            console.log 'applying powerup', data
+            powerup.apply data, tiles
+            @$scope.logs.push
+                id: @$scope.logs.length
+                text: data.message
+            @status.broadcast()
+            $rootScope.$apply()
 
         @$scope.$on 'socket:rank', (e, rank)=>
             @$scope.rank = rank
@@ -77,10 +81,14 @@ class SwStageController
 
             return unless GameState.get() is GameState.STATE.GAMEPLAY
             if keyCode > 47 and keyCode < 58
-                index = keyCode - 49
-                index = 10 if index < 0
-                powerupData = powerup.create powerup.type.REMOVE_MAX
-                socket.powerup opponents.powerup index, powerupData
+                index = keyCode - 48
+                index = 10 if index < 1
+                powerupData = powerup.create powerup.type.BLOCKER
+                targetedPowerup = opponents.powerup index, powerupData
+                console.log targetedPowerup
+                if targetedPowerup?
+                    socket.powerup targetedPowerup
+                return
 
             unless status.gameover
                 switch val.keyCode

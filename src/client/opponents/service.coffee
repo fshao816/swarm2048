@@ -51,9 +51,17 @@ sw.factory 'opponents', ($rootScope, Tiles)->
         $rootScope.$apply()
         console.log list
 
-    powerup = (playerIndex, powerupData)->
-        console.log 'making powerup for opponent', list[playerIndex].name
-        id: list[playerIndex].name
+    powerup = (playerRank, powerupData)->
+        # find player of rank
+        player = null
+        console.log list, playerRank
+        for opponent in list
+            if opponent.rank is playerRank
+                player = opponent
+                break
+        return unless player?
+        console.log 'making powerup for opponent', player.name
+        id: player.name
         powerup: powerupData
 
     remove = (id)->

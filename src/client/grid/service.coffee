@@ -16,6 +16,7 @@ class Tile
         @reducible = no
         @level = 0
         @powerup = null
+        @meta = {}
 
 class Tiles
     maxRows = 0
@@ -234,7 +235,10 @@ class Tiles
 
                 # Set this tile to have current lineCursor index
                 if tile[tileKey] isnt lineCursor
-                    tile[tileKey] = lineCursor
+                    if tile.meta?.blocked
+                        lineCursor = tile[tileKey]
+                    else
+                        tile[tileKey] = lineCursor
 
                 ###
                 Look ahead to next tile and see if it should
@@ -243,7 +247,9 @@ class Tiles
                 iterator reaches that tile
                 ###
                 next = line[i+1]
-                if next? and criteria(tile.value, next.value)
+                if next? and criteria(tile.value, next.value) and
+                not next.meta?.blocked and
+                not tile.meta?.blocked
                     if @status?
                         if next.powerup?
                             @status.powerups.push next.powerup

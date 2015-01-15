@@ -1,6 +1,6 @@
 sw = angular.module 'swarm-2048'
 
-sw.factory 'powerup', ->
+sw.factory 'powerup', (auth, $rootScope)->
     type =
         REMOVE_MAX: 'remove_max'
         BLOCKER: 'blocker'
@@ -13,6 +13,8 @@ sw.factory 'powerup', ->
                     type: type.REMOVE_MAX
                     class: '-powerup-icon -remove-max'
                     duration: 5000
+                    origin: auth.id() || 'unknown'
+                    message: "#{auth.id()} removed your max tile!!!"
                     label: 'D'
                 }
             when type.BLOCKER
@@ -20,6 +22,8 @@ sw.factory 'powerup', ->
                     type: type.BLOCKER
                     class: '-powerup-icon -blocker'
                     duration: 5000
+                    origin: auth.id() || 'unknown'
+                    message: "#{auth.id()} blocked one of your tiles!!!"
                     label: 'B'
                 }
 
@@ -43,6 +47,17 @@ sw.factory 'powerup', ->
                 i = parseInt(Math.random() * maxes.length)
                 removeIndex = tiles.data.indexOf maxes[i]
                 tiles.remove removeIndex
+            when type.BLOCKER
+                valid = tiles.data.filter((tile)-> not tile.reduced)
+                index = parseInt(Math.random() * valid.length)
+                tile = valid[index]
+                tile.meta.blocked = true
+                do (tile)->
+                    setTimeout ->
+                        delete tile.meta.blocked
+                        $rootScope.$apply() unless $rootScope.$$phase?
+                    , 10000
+
 
     {
         apply

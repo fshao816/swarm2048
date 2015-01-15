@@ -12,6 +12,11 @@ sw = sw.controller 'swTileCtrl', ($scope, $animate, powerup)->
         left: "#{left}%"
         width: "#{width}%"
         height: "#{height}%"
+    $scope.meta = ->
+        return null unless $scope.tile.meta?
+        if $scope.tile.meta.blocked
+            return ["_meta", "-blocked"]
+        return []
     $scope.powerup = ->
         return null unless $scope.tile.powerup?
         switch $scope.tile.powerup.type

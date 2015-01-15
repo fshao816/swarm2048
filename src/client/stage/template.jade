@@ -38,3 +38,8 @@
             .identify
                 .text {{ name }}
         .log
+            .title Messages
+            .text-wrap
+                .text
+                    .log-line(ng-repeat='log in logs')
+                        span {{log.text}}
