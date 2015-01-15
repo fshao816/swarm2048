@@ -442,11 +442,14 @@
                 tile.powerup = null;
                 console.log('added powerup', _this.status.powerups);
               }
+              if (_this.status.powerups.length > 10) {
+                _this.status.powerups.pop();
+              }
             }
             next.reduced = true;
             next[tileKey] = lineCursor;
             tile.value = tile.value + next.value;
-            if (tile.value === 16 && (_this.status != null)) {
+            if (tile.value === 2048 && (_this.status != null)) {
               _this.status.endGame = true;
             }
             tile.level = _this.leveler(tile.value);
@@ -479,10 +482,18 @@
 
   sw = angular.module('swarm-2048');
 
-  sw.factory('opponents', function($rootScope, Tiles) {
-    var add, list, map, powerup, rank, remove, statusKeys, update;
+  sw.factory('opponents', function($rootScope, Tiles, powerup) {
+    var add, applyPowerup, list, map, powerupMessage, rank, remove, statusKeys, update;
     list = [];
     map = {};
+    powerupMessage = function(type, id, opponentName) {
+      switch (type) {
+        case powerup.type.REMOVE_MAX:
+          return "" + id + " removed " + opponentName + "'s max tile!!!";
+        case powerup.type.BLOCKER:
+          return "" + id + " blocked one of " + opponentName + "'s tiles!!!";
+      }
+    };
     add = function(data) {
       var cols, opponent, position, rows, tiles;
       console.log('adding opponent', data);
@@ -530,7 +541,7 @@
       opponent.message = opponent.status.gameover;
       return $rootScope.$apply();
     };
-    powerup = function(playerRank, powerupData) {
+    applyPowerup = function(playerRank, powerupData) {
       var opponent, player, _i, _len;
       player = null;
       console.log(list, playerRank);
@@ -545,6 +556,7 @@
         return;
       }
       console.log('making powerup for opponent', player.name);
+      powerupData.message = powerupMessage(powerupData.type, powerupData.origin, player.name);
       return {
         id: player.name,
         powerup: powerupData
@@ -564,7 +576,7 @@
       update: update,
       remove: remove,
       add: add,
-      powerup: powerup,
+      applyPowerup: applyPowerup,
       rank: rank
     };
   });
@@ -614,12 +626,13 @@
       }
     };
     spawn = function(tiles) {
-      var generate, index, powerup, powerupType;
+      var generate, index, powerup, powerupType, randomType;
       generate = Math.random() * 100;
-      if (generate < 1) {
+      if (generate < 90) {
         return;
       }
-      index = parseInt(Math.random() * types.length);
+      randomType = parseInt(Math.random() * 20);
+      index = randomType < 2 ? 0 : 1;
       powerupType = types[index];
       powerup = create(powerupType);
       return tiles.attachPowerup(powerup);
@@ -756,6 +769,7 @@
       });
       $rootScope.$on('socket:status', this.broadcast);
       this.powerups = [];
+      this.previousPosition = [];
       _fn = function(key) {
         if (__indexOf.call(readonly, key) >= 0) {
           return Object.defineProperty(_this, key, {
@@ -786,8 +800,16 @@
     };
 
     Status.prototype.init = function(rows, cols) {
+      var _i, _ref, _results;
       property.rows = rows;
       property.cols = cols;
+      this.previousPosition = (function() {
+        _results = [];
+        for (var _i = 0, _ref = property.rows; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--){ _results.push(_i); }
+        return _results;
+      }).apply(this).map(function(d) {
+        return [];
+      });
       return this.reset();
     };
 
@@ -795,7 +817,7 @@
       if (tile.value == null) {
         return;
       }
-      if (property.position[tile.m][tile.n] !== tile.value) {
+      if (this.previousPosition[tile.m][tile.n] !== tile.value) {
         property.changed = true;
       }
       property.position[tile.m][tile.n] = tile.value;
@@ -805,6 +827,7 @@
 
     Status.prototype.reset = function() {
       var _i, _ref, _results;
+      this.previousPosition = property.position;
       property.position = (function() {
         _results = [];
         for (var _i = 0, _ref = property.rows; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--){ _results.push(_i); }
@@ -888,8 +911,11 @@
           opponents.remove(id);
           return $rootScope.$broadcast('socket:disconnect', id);
         });
-        return socket.on('applyPowerup', function(data) {
+        socket.on('applyPowerup', function(data) {
           return $rootScope.$broadcast('socket:applyPowerup', data);
+        });
+        return socket.on('message', function(data) {
+          return $rootScope.$broadcast('socket:message', data);
         });
       }
     };
@@ -997,7 +1023,7 @@
     grid = null;
 
     function SwStageController($scope, Tiles, Utils, $rootScope, socket, opponents, powerup, auth, GameState, status, $window) {
-      var tiles, values,
+      var logCount, normalVar, pause, randomSpawn, tiles, uniformVar, values,
         _this = this;
       this.$scope = $scope;
       this.Tiles = Tiles;
@@ -1018,6 +1044,7 @@
       };
       this.$scope.powerups = this.status.powerups;
       this.$scope.logs = [];
+      logCount = 0;
       this.$scope.$watch((function() {
         return auth.id();
       }), function(val) {
@@ -1026,7 +1053,8 @@
           GameState.set(GameState.STATE.WAITFORPLAYERS);
           socket.connect();
           socket.identify();
-          return _this.$scope.name = auth.id();
+          _this.$scope.name = auth.id();
+          return console.log(opponents.list);
         }
       });
       this.$scope.$on('socket:allReady', function() {
@@ -1036,6 +1064,14 @@
         return _this.status.score;
       }), function(val) {
         return _this.$scope.score = val;
+      });
+      this.$scope.$watch((function() {
+        return _this.status.gameover;
+      }), function(newVal, oldVal) {
+        if (newVal && !oldVal && _this.status.loser) {
+          _this.$scope.loser = true;
+          return _this.$scope.gameover = true;
+        }
       });
       this.$scope.$on('socket:gameComplete', function(e, playerName) {
         GameState.set(GameState.STATE.GAMEOVER);
@@ -1057,18 +1093,34 @@
         }
       });
       this.$scope.$on('socket:applyPowerup', function(e, data) {
-        console.log('applying powerup', data);
         powerup.apply(data, tiles);
-        _this.$scope.logs.push({
-          id: _this.$scope.logs.length,
-          text: data.message
-        });
         _this.status.broadcast();
         return $rootScope.$apply();
+      });
+      this.$scope.$on('socket:message', function(e, data) {
+        _this.$scope.logs.push({
+          id: logCount++,
+          text: data
+        });
+        if (_this.$scope.logs.length > 20) {
+          return _this.$scope.logs.shift();
+        }
       });
       this.$scope.$on('socket:rank', function(e, rank) {
         return _this.$scope.rank = rank;
       });
+      uniformVar = function() {
+        return (Math.random() * 2) - 1;
+      };
+      normalVar = uniformVar() + uniformVar() + uniformVar() + uniformVar();
+      pause = (normalVar * 2000) + 6000;
+      randomSpawn = function() {
+        powerup.spawn(tiles);
+        normalVar = uniformVar() + uniformVar() + uniformVar() + uniformVar();
+        pause = (normalVar * 2000) + 6000;
+        return setTimeout(randomSpawn, pause);
+      };
+      setTimeout(randomSpawn, pause);
       this.$scope.$on('keydown', function(e, val) {
         var index, keyCode, newTiles, powerupData, targetedPowerup;
         keyCode = val.keyCode;
@@ -1080,11 +1132,13 @@
           if (index < 1) {
             index = 10;
           }
-          powerupData = powerup.create(powerup.type.BLOCKER);
-          targetedPowerup = opponents.powerup(index, powerupData);
-          console.log(targetedPowerup);
-          if (targetedPowerup != null) {
-            socket.powerup(targetedPowerup);
+          powerupData = _this.status.powerups.shift();
+          if (powerupData != null) {
+            targetedPowerup = opponents.applyPowerup(index, powerupData);
+            console.log(targetedPowerup);
+            if (targetedPowerup != null) {
+              socket.powerup(targetedPowerup);
+            }
           }
           return;
         }
@@ -1110,7 +1164,6 @@
               console.log('status position', status.position);
               return status.position[tile.m][tile.n] = tile.value;
             });
-            powerup.spawn(tiles);
             status.broadcast();
           }
         }

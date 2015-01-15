@@ -44,6 +44,7 @@ class SwStageController
 
         @$scope.powerups = @status.powerups
         @$scope.logs = []
+        logCount = 0
 
         @$scope.$watch (-> auth.id()), (val)=>
             if val?
@@ -58,6 +59,12 @@ class SwStageController
 
         @$scope.$watch (=> @status.score), (val)=>
             @$scope.score = val
+
+        @$scope.$watch (=> @status.gameover), (newVal, oldVal)=>
+            if newVal and not oldVal and @status.loser
+                @$scope.loser = true
+                @$scope.gameover = true
+
 
         @$scope.$on 'socket:gameComplete', (e, playerName)=>
             GameState.set GameState.STATE.GAMEOVER
@@ -83,24 +90,38 @@ class SwStageController
 
 
         @$scope.$on 'socket:applyPowerup', (e, data)=>
-            console.log 'applying powerup', data
+            # console.log 'applying powerup', data
             powerup.apply data, tiles
-            @$scope.logs.push
-                id: @$scope.logs.length
-                text: data.message
+            # @$scope.logs.push
+            #     id: logCount++
+            #     text: data.message
+            # if @$scope.logs.length > 20
+            #     @$scope.logs.shift()
             @status.broadcast()
             $rootScope.$apply()
+
+        @$scope.$on 'socket:message', (e, data)=>
+            @$scope.logs.push
+                id: logCount++
+                text: data
+            if @$scope.logs.length > 20
+                @$scope.logs.shift()
 
         @$scope.$on 'socket:rank', (e, rank)=>
             @$scope.rank = rank
 
-        # @$scope.$on (=> @status.gameover), (val)->
-        #     if val
-        #         @$scope.gameover = true
-        #         if @status.loser
-        #             @$scope.loser = true
-        #         else
-        #             @$scope.winner = true
+        uniformVar = -> (Math.random() * 2) - 1
+        normalVar = uniformVar() + uniformVar() + uniformVar() + uniformVar()
+        pause = (normalVar * 2000) + 6000
+
+        randomSpawn = ->
+            powerup.spawn tiles
+            normalVar =
+                uniformVar() + uniformVar() + uniformVar() + uniformVar()
+            pause = (normalVar * 2000) + 6000
+            setTimeout randomSpawn, pause
+
+        setTimeout randomSpawn, pause
 
 
         @$scope.$on 'keydown', (e, val)=>
@@ -110,11 +131,12 @@ class SwStageController
             if keyCode > 47 and keyCode < 58
                 index = keyCode - 48
                 index = 10 if index < 1
-                powerupData = powerup.create powerup.type.BLOCKER
-                targetedPowerup = opponents.powerup index, powerupData
-                console.log targetedPowerup
-                if targetedPowerup?
-                    socket.powerup targetedPowerup
+                powerupData = @status.powerups.shift()
+                if powerupData?
+                    targetedPowerup = opponents.applyPowerup index, powerupData
+                    console.log targetedPowerup
+                    if targetedPowerup?
+                        socket.powerup targetedPowerup
                 return
 
             unless status.gameover
@@ -135,7 +157,7 @@ class SwStageController
                         console.log 'status position', status.position
                         status.position[tile.m][tile.n] = tile.value
 
-                    powerup.spawn tiles
+                    # powerup.spawn tiles
 
                     status.broadcast()
 

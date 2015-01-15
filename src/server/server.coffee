@@ -24,36 +24,35 @@ io.on 'connection', (socket)->
     socket.emit 'identify'
 
     socket.on 'joinGroup', (group)->
-        console.log "[#{socket.id}] Joining group", group
+        # console.log "[#{socket.id}] Joining group", group
         socket.join group
 
     socket.on 'identify', (user)->
         if players[user]?
             socket.emit "[#{socket.id}] User Conflict:", user
         else
-            console.log "[#{socket.id}] identify user:", user
+            # console.log "[#{socket.id}] identify user:", user
             players[user] =
                 id: socket.id
             io.emit 'status'
-            console.log players
+            # console.log players
 
     socket.on 'status', (data)->
         players[data.id].status = data.status
 
         if data.status.ready and not gameInProgress
-            console.log "[#{socket.id}] READY and game not in progress"
-            index = notReady.indexOf data.id
-            notReady.splice index, 1 if index > -1
+            # console.log "[#{socket.id}] READY and game not in progress"
+            allready = (player.status.ready for key, player of players)
+            if allready.every((d)-> d)
+                gameInProgress = true
+                io.emit 'allReady'
 
-        if not data.status.ready
-            console.log "[#{socket.id}] NOT READY and game not in progress"
-            notReady.push data.id if data.id not in notReady
+        if data.status.ready and gameInProgress
+            socket.emit 'allReady'
 
-        if notReady.length is 0 and not gameInProgress and
-        not data.status.gameover
-            console.log "[#{socket.id}] EMIT ALL READY"
-            gameInProgress = true
-            io.emit 'allReady'
+        # if not data.status.ready
+            # console.log "[#{socket.id}] NOT READY and game not in progress"
+            # notReady.push data.id if data.id not in notReady
 
         socket.broadcast.emit 'updatePlayers', data
         ranking =
@@ -83,7 +82,7 @@ io.on 'connection', (socket)->
         if data.status.endGame and gameInProgress
             console.log 'endgame:', data.id
             topPlayerName = sorted[0]
-            console.log sorted, topPlayerName
+            # console.log sorted, topPlayerName
             io.emit 'endGame', topPlayerName
             playersGameover = []
             gameInProgress = false
@@ -94,6 +93,7 @@ io.on 'connection', (socket)->
         socketId = players[data.id]?.id
         if socketId?
             io.sockets.connected[socketId].emit 'applyPowerup', data.powerup
+            io.emit 'message', data.powerup.message
 
     socket.on 'disconnect', ->
         for name, player of players
@@ -107,8 +107,8 @@ io.on 'connection', (socket)->
                     playersGameover = []
                     gameInProgress = false
 
-        console.log 'user disconnected'
-        console.log "Users", (key for key of players)
+        # console.log 'user disconnected'
+        # console.log "Users", (key for key of players)
 
 server = null
 

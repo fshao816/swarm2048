@@ -260,12 +260,14 @@ class Tiles
                             @status.powerups.push tile.powerup
                             tile.powerup = null
                             console.log 'added powerup', @status.powerups
+                        if @status.powerups.length > 10
+                            @status.powerups.pop()
 
                     next.reduced = true
                     next[tileKey] = lineCursor
                     tile.value = tile.value + next.value
 
-                    if tile.value is 16 and @status?
+                    if tile.value is 2048 and @status?
                         @status.endGame = true
 
                     tile.level = @leveler tile.value

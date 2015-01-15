@@ -29,9 +29,17 @@ sw.factory 'powerup', (auth, $rootScope)->
 
     spawn = (tiles)->
         generate = Math.random() * 100
-        return if generate < 1
+        return if generate < 60
 
-        index = parseInt(Math.random() * types.length)
+        randomType = parseInt(Math.random() * 20)
+
+        index =
+            if randomType < 2
+                0
+            else
+                1
+
+        # index = parseInt(Math.random() * types.length)
 
         powerupType = types[index]
         powerup = create powerupType

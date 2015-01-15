@@ -37,6 +37,8 @@ sw.factory 'socket', ($rootScope, auth, opponents)->
                 $rootScope.$broadcast 'socket:disconnect', id
             socket.on 'applyPowerup', (data)->
                 $rootScope.$broadcast 'socket:applyPowerup', data
+            socket.on 'message', (data)->
+                $rootScope.$broadcast 'socket:message', data
 
     identify = ->
         socket.emit 'identify', auth.id()

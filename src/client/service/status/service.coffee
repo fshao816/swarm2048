@@ -25,6 +25,7 @@ class Status
         $rootScope.$on 'socket:status', @broadcast
 
         @powerups = []
+        @previousPosition = []
 
         for key of property
             do (key)=>
@@ -46,17 +47,19 @@ class Status
     init: (rows, cols)->
         property.rows = rows
         property.cols = cols
+        @previousPosition = [0...property.rows].map (d)-> []
         @reset()
 
     update: (tile)=>
         return unless tile.value?
-        if property.position[tile.m][tile.n] isnt tile.value
+        if @previousPosition[tile.m][tile.n] isnt tile.value
             property.changed = true
         property.position[tile.m][tile.n] = tile.value
         property.max = Math.max property.max, tile.value
         property.high = Math.max property.max, property.high
 
     reset: =>
+        @previousPosition = property.position
         property.position = [0...property.rows].map (d)-> []
         console.log 'reset', property
         property.max = 0

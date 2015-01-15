@@ -1,9 +1,16 @@
 sw = angular.module 'swarm-2048'
 
-sw.factory 'opponents', ($rootScope, Tiles)->
+sw.factory 'opponents', ($rootScope, Tiles, powerup)->
 
     list = []
     map = {}
+
+    powerupMessage = (type, id, opponentName)->
+        switch type
+            when powerup.type.REMOVE_MAX
+                "#{id} removed #{opponentName}'s max tile!!!"
+            when powerup.type.BLOCKER
+                "#{id} blocked one of #{opponentName}'s tiles!!!"
 
     add = (data)->
         console.log 'adding opponent', data
@@ -50,7 +57,7 @@ sw.factory 'opponents', ($rootScope, Tiles)->
 
         $rootScope.$apply()
 
-    powerup = (playerRank, powerupData)->
+    applyPowerup = (playerRank, powerupData)->
         # find player of rank
         player = null
         console.log list, playerRank
@@ -60,6 +67,10 @@ sw.factory 'opponents', ($rootScope, Tiles)->
                 break
         return unless player?
         console.log 'making powerup for opponent', player.name
+
+        powerupData.message =
+            powerupMessage powerupData.type, powerupData.origin, player.name
+
         id: player.name
         powerup: powerupData
 
@@ -76,6 +87,6 @@ sw.factory 'opponents', ($rootScope, Tiles)->
         update
         remove
         add
-        powerup
+        applyPowerup
         rank
     }
