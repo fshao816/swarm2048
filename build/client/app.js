@@ -628,7 +628,7 @@
     spawn = function(tiles) {
       var generate, index, powerup, powerupType, randomType;
       generate = Math.random() * 100;
-      if (generate < 90) {
+      if (generate < 20) {
         return;
       }
       randomType = parseInt(Math.random() * 20);
@@ -1053,8 +1053,7 @@
           GameState.set(GameState.STATE.WAITFORPLAYERS);
           socket.connect();
           socket.identify();
-          _this.$scope.name = auth.id();
-          return console.log(opponents.list);
+          return _this.$scope.name = auth.id();
         }
       });
       this.$scope.$on('socket:allReady', function() {

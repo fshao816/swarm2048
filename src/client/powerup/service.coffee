@@ -29,7 +29,7 @@ sw.factory 'powerup', (auth, $rootScope)->
 
     spawn = (tiles)->
         generate = Math.random() * 100
-        return if generate < 60
+        return if generate < 30
 
         randomType = parseInt(Math.random() * 20)
 

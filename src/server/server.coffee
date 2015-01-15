@@ -15,12 +15,11 @@ http = require('http').Server(app)
 io = require('socket.io')(http)
 
 players = {}
-notReady = []
 gameInProgress = false
 playersGameover = []
 
 io.on 'connection', (socket)->
-    console.log 'user connected'
+    console.log "[#{socket.id}] user connected"
     socket.emit 'identify'
 
     socket.on 'joinGroup', (group)->
@@ -31,11 +30,10 @@ io.on 'connection', (socket)->
         if players[user]?
             socket.emit "[#{socket.id}] User Conflict:", user
         else
-            # console.log "[#{socket.id}] identify user:", user
+            console.log "[#{socket.id}] User identified:", user
             players[user] =
                 id: socket.id
             io.emit 'status'
-            # console.log players
 
     socket.on 'status', (data)->
         players[data.id].status = data.status
@@ -49,10 +47,6 @@ io.on 'connection', (socket)->
 
         if data.status.ready and gameInProgress
             socket.emit 'allReady'
-
-        # if not data.status.ready
-            # console.log "[#{socket.id}] NOT READY and game not in progress"
-            # notReady.push data.id if data.id not in notReady
 
         socket.broadcast.emit 'updatePlayers', data
         ranking =
@@ -114,7 +108,7 @@ server = null
 
 module.exports =
     start: (callback)->
-        startingPort = process.env.PORT || 1024
+        startingPort = process.env.PORT || 2048
         require('openport')
         .find {startingPort}, (err, port)->
             process.env.PORT = port
